@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GATI – Government–Startup Innovation & Transformation Interface</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',system-ui,sans-serif}
+body{background:#f8fafc;color:#0f172a;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.fade-in{animation:fadeIn .3s ease-out}
+.spinner{width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:12px}
+.modal-box{background:#fff;border-radius:18px;box-shadow:0 25px 60px rgba(0,0,0,.2);width:100%;max-height:92vh;overflow-y:auto}
+.card{background:#fff;border-radius:14px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:box-shadow .2s}
+.card:hover{box-shadow:0 4px 12px rgba(0,0,0,.07)}
+.input{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;color:#0f172a;background:#fff;transition:border .2s;outline:none;font-family:inherit}
+.input:focus{border-color:#14b8a6;box-shadow:0 0 0 3px rgba(20,184,166,.1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:none;border-radius:9px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;font-size:13px;padding:8px 16px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-p{background:linear-gradient(135deg,#14b8a6,#0d9488);color:#fff}
+.btn-b{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.btn-n{background:#0f172a;color:#fff}
+.btn-o{background:#fff;color:#374151;border:1.5px solid #d1d5db}
+.btn-d{background:#dc2626;color:#fff}
+.btn-a{background:#b45309;color:#fff}
+.btn-pr{background:#7e22ce;color:#fff}
+.btn-g{background:#059669;color:#fff}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px}
+.sidebar{position:fixed;left:0;top:56px;bottom:0;width:230px;z-index:300;overflow-y:auto;transition:transform .3s}
+.si{width:100%;display:flex;align-items:center;gap:9px;padding:9px 16px;border:none;background:transparent;cursor:pointer;text-align:left;color:rgba(255,255,255,.72);font-size:12.5px;font-weight:500;transition:all .15s;font-family:inherit;border-left:3px solid transparent}
+.si:hover{background:rgba(255,255,255,.1);color:#fff}
+.si.act{background:rgba(255,255,255,.15);color:#fff;border-left-color:rgba(255,255,255,.9);font-weight:700}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:400;background:#fff;border-bottom:1px solid #e2e8f0;height:56px;display:flex;align-items:center;padding:0 14px;gap:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.tab{padding:7px 14px;border:none;background:transparent;cursor:pointer;font-size:12px;font-weight:500;color:#64748b;border-bottom:2px solid transparent;transition:all .15s;font-family:inherit}
+.tab.act{color:#0d9488;border-bottom-color:#0d9488;font-weight:700}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .mc{margin-left:0!important}
+  .hm{display:none!important}
+  .mm{display:flex!important}
+  .rg{grid-template-columns:1fr!important}
+  .sg{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,createContext,useContext}=React;
+
+// ============ CONTEXT ============
+const Ctx=createContext();
+const useApp=()=>useContext(Ctx);
+
+// ============ DATA ============
+const USERS=[
+  {id:'U1',email:'health@mh.gov.in',password:'gov123',role:'govt',name:'Dr. Meera Kulkarni',dept:'Dept. of Public Health',avatar:'MK'},
+  {id:'U2',email:'water@mh.gov.in',password:'gov123',role:'govt',name:'Shri Rajendra Patil',dept:'Water Resources Dept.',avatar:'RP'},
+  {id:'U3',email:'admin@msins.in',password:'admin123',role:'admin',name:'Adv. Sheetal Naik',dept:'MSInS – Maharashtra',avatar:'SN'},
+  {id:'U4',email:'coord@msins.in',password:'admin123',role:'admin',name:'Shri Anil Deshmukh',dept:'MSInS – Maharashtra',avatar:'AD'},
+  {id:'U5',email:'rohit@healthai.in',password:'start123',role:'startup',name:'Rohit Deshmukh',company:'HealthAI Innovations',avatar:'RD'},
+  {id:'U6',email:'priya@agrosense.io',password:'start123',role:'startup',name:'Priya Sharma',company:'AgroSense Technologies',avatar:'PS'},
+  {id:'U7',email:'vikram@aquawatch.in',password:'start123',role:'startup',name:'Vikram Nair',company:'AquaWatch Systems',avatar:'VN'},
+];
+
+const DEPTS=[
+  {id:'D1',name:'Dept. of Public Health',sector:'Health',head:'Dr. Meera Kulkarni',city:'Mumbai'},
+  {id:'D2',name:'Water Resources Dept.',sector:'Water',head:'Shri Rajendra Patil',city:'Pune'},
+  {id:'D3',name:'Dept. of Agriculture',sector:'Agriculture',head:'Shri Suresh Desai',city:'Aurangabad'},
+  {id:'D4',name:'MSRTC',sector:'Transport',head:'Shri Arun Sawant',city:'Nagpur'},
+  {id:'D5',name:'Tribal Development Dept.',sector:'Education',head:'Smt. Kavita More',city:'Gadchiroli'},
+  {id:'D6',name:'Gen. Administration Dept.',sector:'E-Governance',head:'Shri Raj Mehta',city:'Mumbai'},
+];
+
+const initChallenges=[
+  {id:'CH1',title:'AI-Powered Disease Surveillance for Rural PHCs',deptId:'D1',dept:'Dept. of Public Health',sector:'Health',city:'Pune',status:'published',budget:7500000,deadline:'2025-09-15',pilotDuration:'6 months',
+   problem:'Maharashtra needs a real-time AI dashboard integrating IDSP data to predict disease outbreaks across rural PHCs. Current manual surveillance causes delays of 7-14 days in outbreak detection.',
+   background:'IDSP generates massive data but lacks predictive analytics. Rural PHCs have limited connectivity. Early detection can save thousands of lives.',
+   outcomes:'Reduce outbreak detection from 14 days to <2 hours. Cover 100+ PHCs. >90% prediction accuracy.',
+   requirements:'Cloud-based, low bandwidth compatible, mobile dashboard, IDSP API integration',
+   geography:'Pune Division – 12 districts',
+   kpis:[{id:'K1',name:'PHC Coverage',target:'100 PHCs',weight:25,method:'Dashboard count'},{id:'K2',name:'Alert Latency',target:'<2 hours',weight:35,method:'Timestamp comparison'},{id:'K3',name:'Prediction Accuracy',target:'>90%',weight:25,method:'Retrospective validation'},{id:'K4',name:'System Uptime',target:'>99.5%',weight:15,method:'Monitoring tools'}],
+   proposedDate:'2025-05-10',publishDate:'2025-05-20',applicants:8,
+   reviews:[{by:'U3',date:'2025-05-18',action:'approve',comment:'Well-structured. Clear KPIs. Budget reasonable. Approved.'}]},
+  {id:'CH2',title:'Smart Irrigation Advisory for Marathwada Farmers',deptId:'D3',dept:'Dept. of Agriculture',sector:'Agriculture',city:'Aurangabad',status:'published',budget:4200000,deadline:'2025-08-30',pilotDuration:'5 months',
+   problem:'Marathwada farmers face severe water scarcity. Current irrigation wastes 40% water. Need real-time crop-specific advisories.',
+   background:'Region experiences recurring droughts. 2,000 soil moisture sensors installed but data unused. Farmers rely on experience not data.',
+   outcomes:'Reduce water use 20%. Improve yield 15%. Cover 5,000 farmers.',
+   requirements:'IoT integration, Marathi/Hindi mobile app, SMS fallback, offline capability',
+   geography:'Aurangabad, Jalna, Beed, Latur',
+   kpis:[{id:'K5',name:'Farmer Adoption',target:'5,000 farmers',weight:35,method:'App analytics + survey'},{id:'K6',name:'Water Savings',target:'>20% reduction',weight:30,method:'Sensor data comparison'},{id:'K7',name:'Yield Improvement',target:'>15%',weight:25,method:'Harvest data'},{id:'K8',name:'Advisory Accuracy',target:'>85%',weight:10,method:'Agronomist validation'}],
+   proposedDate:'2025-04-20',publishDate:'2025-05-08',applicants:5,
+   reviews:[{by:'U3',date:'2025-05-05',action:'approve',comment:'Strong agricultural challenge. Clear metrics. Approved.'}]},
+  {id:'CH3',title:'Real-Time Water Quality Monitoring Network',deptId:'D2',dept:'Water Resources Dept.',sector:'Water',city:'Nashik',status:'published',budget:3800000,deadline:'2025-09-01',pilotDuration:'4 months',
+   problem:'Nashik water supply lacks real-time quality monitoring. Contamination detected only after complaints. Risking 2M residents.',
+   background:'Lab-based testing has 48-hour turnaround. 50 distribution points, no real-time data. Citizens demand transparency.',
+   outcomes:'IoT sensors at 50 points. Real-time pH, turbidity, chlorine. Public dashboard.',
+   requirements:'IP68 sensors, LoRaWAN/cellular, cloud platform, public dashboard',
+   geography:'Nashik Municipal Corporation',
+   kpis:[{id:'K9',name:'Sensor Uptime',target:'>99%',weight:35,method:'Automated monitoring'},{id:'K10',name:'Data Latency',target:'<5 min',weight:25,method:'Timestamps'},{id:'K11',name:'Coverage',target:'50 points',weight:25,method:'Deployment count'},{id:'K12',name:'Public Access',target:'Mobile+Web',weight:15,method:'Uptime+analytics'}],
+   proposedDate:'2025-04-15',publishDate:'2025-05-03',applicants:4,
+   reviews:[{by:'U4',date:'2025-05-01',action:'approve',comment:'Critical public health need. Approved.'}]},
+  {id:'CH4',title:'NLP-based Grievance Resolution for Aaple Sarkar',deptId:'D6',dept:'Gen. Administration Dept.',sector:'E-Governance',city:'Mumbai',status:'under-review',budget:5100000,deadline:'2025-10-01',pilotDuration:'6 months',
+   problem:'Aaple Sarkar gets 50,000+ grievances/month. Manual classification takes 3-5 days. Resolution averages 30 days.',
+   background:'Portal has text in Marathi/Hindi/English. Routing is manual and error-prone. Auto-classification can cut time dramatically.',
+   outcomes:'Auto-classify >85%. Resolution time 30→7 days. Citizen satisfaction >4/5.',
+   requirements:'NLP for Marathi/Hindi/English, Aaple Sarkar API, real-time routing',
+   geography:'State-wide (pilot: Mumbai Division)',
+   kpis:[{id:'K13',name:'Classification Accuracy',target:'>85%',weight:35,method:'Manual audit'},{id:'K14',name:'Resolution Time',target:'<7 days',weight:35,method:'System timestamps'},{id:'K15',name:'Satisfaction',target:'>4/5',weight:20,method:'SMS survey'},{id:'K16',name:'Throughput',target:'>2000/day',weight:10,method:'System analytics'}],
+   proposedDate:'2025-06-01',applicants:0,reviews:[]},
+  {id:'CH5',title:'Adaptive Learning for Tribal Schools',deptId:'D5',dept:'Tribal Development Dept.',sector:'Education',city:'Gadchiroli',status:'draft',budget:2900000,deadline:'',pilotDuration:'8 months',
+   problem:'60% dropout in Gadchiroli tribal schools. No personalized learning. No digital tracking.',
+   background:'50 schools, 3,000+ students. Limited internet. First-generation learners.',
+   outcomes:'Reduce dropout 25%. Improve learning 30%. Enable offline digital learning.',
+   requirements:'Offline-first, Marathi, low-resource devices, teacher analytics',
+   geography:'Gadchiroli district',
+   kpis:[{id:'K17',name:'Schools Covered',target:'50',weight:25,method:'Deployment count'},{id:'K18',name:'Learning Gain',target:'>25%',weight:35,method:'Standardized tests'},{id:'K19',name:'Retention',target:'>80%',weight:25,method:'Enrollment records'},{id:'K20',name:'Teacher Adoption',target:'>90%',weight:15,method:'Login analytics'}],
+   proposedDate:'2025-06-15',applicants:0,reviews:[]},
+  {id:'CH6',title:'Multimodal Transit Integration for Nagpur',deptId:'D4',dept:'MSRTC',sector:'Transport',city:'Nagpur',status:'published',budget:6000000,deadline:'2025-08-20',pilotDuration:'5 months',
+   problem:'Nagpur has multiple transit modes with no unified journey planning or ticketing.',
+   background:'Metro operational since 2019. MSRTC, city buses, autos all separate. No unified data.',
+   outcomes:'Integrate 4 modes in single app. 10,000+ daily users. >95% trip accuracy.',
+   requirements:'Real-time GTFS, payment gateway, multi-language, accessibility',
+   geography:'Nagpur Metropolitan Region',
+   kpis:[{id:'K21',name:'Modes Integrated',target:'4 modes',weight:30,method:'Feature verification'},{id:'K22',name:'Daily Users',target:'>10,000',weight:30,method:'App analytics'},{id:'K23',name:'Trip Accuracy',target:'>95%',weight:25,method:'GPS validation'},{id:'K24',name:'Payment Success',target:'>99%',weight:15,method:'Payment reports'}],
+   proposedDate:'2025-05-01',publishDate:'2025-05-18',applicants:6,
+   reviews:[{by:'U3',date:'2025-05-15',action:'approve',comment:'Important urban mobility challenge. Approved.'}]},
+];
+
+const initStartups=[
+  {id:'ST1',userId:'U5',name:'HealthAI Innovations Pvt Ltd',sector:'HealthTech',city:'Pune',founders:'Dr. Aarti Kulkarni, Rohit Deshmukh',founded:'2021',employees:'15-25',gstin:'27AABCH1234F1Z5',dpiit:'DIPP12345',
+   about:'AI-powered health surveillance and diagnostics. ICMR-validated outbreak prediction model.',
+   docs:['DPIIT_Certificate.pdf','Incorporation_Cert.pdf','Financials_FY24.pdf','ICMR_Report.pdf'],profileComplete:100},
+  {id:'ST2',userId:'U6',name:'AgroSense Technologies',sector:'AgriTech',city:'Aurangabad',founders:'Suresh Patil, Meena Jadhav, Priya Sharma',founded:'2020',employees:'10-15',gstin:'27AABCA5678G2Z1',dpiit:'DIPP23456',
+   about:'Precision agriculture: IoT sensors + satellite imagery + ML. Operating in 3 states, 50,000+ farmers.',
+   docs:['DPIIT_Certificate.pdf','Incorporation_Cert.pdf','Financial_Statements.pdf','Patents.pdf'],profileComplete:100},
+  {id:'ST3',userId:'U7',name:'AquaWatch Systems',sector:'WaterTech',city:'Nashik',founders:'Vikram Nair, Priya Sharma',founded:'2022',employees:'8-12',gstin:'27AABCW9012H3Z8',dpiit:'DIPP34567',
+   about:'IoT water quality monitoring. 8-parameter sensors with 99.9% accuracy.',
+   docs:['DPIIT_Certificate.pdf','Incorporation_Cert.pdf','Calibration_Report.pdf'],profileComplete:95},
+];
+
+const initApps=[
+  {id:'APP1',chId:'CH1',stId:'ST1',status:'pilot',applied:'2025-05-25',
+   proposal:'Deploy AI outbreak prediction across 100 PHCs using LSTM neural networks trained on 10 years IDSP data. 93% accuracy in retrospective validation.',
+   approach:'Phase 1: Data integration (M1-2). Phase 2: 25 PHCs (M3). Phase 3: Scale to 100 (M4-5). Phase 4: Optimization (M6).',
+   scr:{doc:{status:'verified',date:'2025-06-01',by:'U3',comment:'All verified. DPIIT active. Financials healthy.',checks:[{doc:'DPIIT Certificate',st:'verified',note:'Active & valid'},{doc:'Incorporation',st:'verified',note:'MCA match'},{doc:'Financials FY24',st:'verified',note:'Positive net worth'},{doc:'ICMR Report',st:'verified',note:'Confirmed'}]},
+     url:{status:'passed',date:'2025-06-05',by:'U4',score:82,dims:[{n:'Technology',s:88,e:'Patented AI, ICMR validated'},{n:'Team',s:85,e:'PhD-led, domain experts'},{n:'Operations',s:78,e:'3 hospital deployments'},{n:'Integration',s:80,e:'REST, HL7 FHIR'},{n:'Deployment',s:82,e:'Cloud-native, edge ready'},{n:'Financial',s:75,e:'2yr runway, growing revenue'}]},
+     kpi:{status:'passed',date:'2025-06-10',by:'U3',results:[{kid:'K1',r:'pass',s:90,e:'120 PHC integration demo'},{kid:'K2',r:'pass',s:95,e:'47 min avg in testing'},{kid:'K3',r:'pass',s:88,e:'93% retrospective accuracy'},{kid:'K4',r:'pass',s:92,e:'99.7% uptime existing'}]}},
+   elig:{status:'eligible',date:'2025-06-12',reason:'Passed all 3 screening stages with strong scores.'},
+   contract:'signed'},
+  {id:'APP2',chId:'CH2',stId:'ST2',status:'screening-url',applied:'2025-05-15',
+   proposal:'Precision irrigation via satellite imagery (Sentinel-2), soil moisture sensors, weather APIs. Marathi mobile app + SMS.',
+   approach:'Phase 1: 1000 farm sensors (M1). Phase 2: App launch (M2). Phase 3: ML calibration (M3). Phase 4: 5000 farmers (M4-5).',
+   scr:{doc:{status:'verified',date:'2025-05-28',by:'U4',comment:'All verified.',checks:[{doc:'DPIIT Certificate',st:'verified',note:'Active'},{doc:'Incorporation',st:'verified',note:'Valid'},{doc:'Financials',st:'verified',note:'Healthy'},{doc:'Patents',st:'verified',note:'2 confirmed'}]},
+     url:{status:'in-progress',dims:[{n:'Technology',s:80,e:'Proven IoT platform'},{n:'Team',s:78,e:'Agri-domain experts'},{n:'Operations',s:72,e:'3 state operations'}]},
+     kpi:{status:'pending',results:[]}},
+   elig:null,contract:null},
+  {id:'APP3',chId:'CH3',stId:'ST3',status:'screening-doc',applied:'2025-05-20',
+   proposal:'Deploy proprietary multi-parameter IoT sensors at 50 Nashik distribution points. Real-time pH, turbidity, chlorine, TDS, temperature, conductivity, DO, ORP.',
+   approach:'Phase 1: Survey & install (M1). Phase 2: Cloud dashboard (M2). Phase 3: Public launch (M3). Phase 4: Optimize (M4).',
+   scr:{doc:{status:'in-progress',by:'U3',checks:[{doc:'DPIIT Certificate',st:'verified',note:'Active'},{doc:'Incorporation',st:'verified',note:'Valid'},{doc:'Calibration Report',st:'pending',note:'Awaiting NABL verification'}]},
+     url:{status:'pending',dims:[]},kpi:{status:'pending',results:[]}},
+   elig:null,contract:null},
+  {id:'APP4',chId:'CH1',stId:'ST2',status:'rejected',applied:'2025-05-22',
+   proposal:'Adapt our agricultural IoT platform for health surveillance.',
+   approach:'Reuse existing sensor infrastructure.',
+   scr:{doc:{status:'verified',date:'2025-05-30',by:'U3',checks:[{doc:'DPIIT',st:'verified',note:'Active'}]},
+     url:{status:'failed',date:'2025-06-03',by:'U4',score:38,dims:[{n:'Technology',s:30,e:'AgriTech only, no health'},{n:'Team',s:45,e:'No health experts'},{n:'Operations',s:35,e:'No health deployments'},{n:'Integration',s:40,e:'No HL7/FHIR'},{n:'Deployment',s:42,e:'Limited healthcare infra'},{n:'Financial',s:72,e:'Adequate funding'}]},
+     kpi:{status:'not-applicable',results:[]}},
+   elig:{status:'ineligible',date:'2025-06-05',reason:'URL score 38/100 below minimum 60. No health domain capability.'},contract:null},
+  {id:'APP5',chId:'CH6',stId:'ST1',status:'screening-kpi',applied:'2025-05-22',
+   proposal:'Adapt our real-time data platform for multimodal transit aggregation. 100K+ events/sec processing.',
+   approach:'Leverage real-time pipeline for transit data.',
+   scr:{doc:{status:'verified',date:'2025-05-30',by:'U3',checks:[{doc:'DPIIT',st:'verified',note:'Active'},{doc:'Incorporation',st:'verified',note:'Valid'}]},
+     url:{status:'passed',date:'2025-06-08',by:'U4',score:65,dims:[{n:'Technology',s:72,e:'Strong backend, limited transit'},{n:'Team',s:60,e:'Strong tech, no transit experts'},{n:'Operations',s:62,e:'Cloud ready'},{n:'Integration',s:68,e:'API integration proven'},{n:'Deployment',s:70,e:'Cloud expertise'},{n:'Financial',s:75,e:'Adequate'}]},
+     kpi:{status:'in-progress',results:[{kid:'K21',r:'pass',s:85,e:'3 mode demo'},{kid:'K22',r:'pending',s:0,e:''},{kid:'K23',r:'pending',s:0,e:''},{kid:'K24',r:'pending',s:0,e:''}]}},
+   elig:null,contract:null},
+  {id:'APP6',chId:'CH2',stId:'ST3',status:'applied',applied:'2025-06-10',
+   proposal:'Our IoT water sensors can be adapted for soil moisture monitoring in agricultural fields.',
+   approach:'Deploy modified sensors with agricultural calibration profiles.',
+   scr:{doc:{status:'pending',checks:[]},url:{status:'pending',dims:[]},kpi:{status:'pending',results:[]}},
+   elig:null,contract:null},
+  {id:'APP7',chId:'CH6',stId:'ST2',status:'screening-doc',applied:'2025-06-05',
+   proposal:'Use our existing IoT platform for transit vehicle tracking and fleet management.',
+   approach:'Deploy GPS trackers on transit vehicles with real-time dashboard.',
+   scr:{doc:{status:'in-progress',by:'U3',checks:[{doc:'DPIIT Certificate',st:'verified',note:'Active'},{doc:'Incorporation',st:'pending',note:'Awaiting latest copy'}]},
+     url:{status:'pending',dims:[]},kpi:{status:'pending',results:[]}},
+   elig:null,contract:null},
+];
+
+const initContracts=[
+  {id:'CON1',appId:'APP1',chId:'CH1',stId:'ST1',status:'signed',
+   ip:{v:'1.0',created:'2025-06-15',status:'signed',signedStartup:'2025-06-18',signedGovt:'2025-06-19',signedMSInS:'2025-06-20',
+     terms:'Background IP with originator. New IP jointly owned. Govt: perpetual royalty-free license. Startup: commercial rights for non-govt. Confidentiality: 5 years.'},
+   payment:{v:'1.0',status:'signed',total:7500000,milestones:[
+     {id:'MS1',name:'System Setup & Data Integration',amt:750000,deadline:'2025-07-30',deliverables:'IDSP pipeline, cloud infra, base ML model'},
+     {id:'MS2',name:'25 PHC Deployment',amt:1500000,deadline:'2025-08-30',deliverables:'25 PHCs live, dashboard v1, alerts'},
+     {id:'MS3',name:'AI Model Optimization',amt:2250000,deadline:'2025-09-30',deliverables:'Optimized ML, >90% accuracy'},
+     {id:'MS4',name:'Full 100 PHC Coverage',amt:3000000,deadline:'2025-11-30',deliverables:'100 PHCs live, public dashboard, training'},
+   ]}},
+];
+
+const initPilots=[
+  {id:'PIL1',conId:'CON1',appId:'APP1',chId:'CH1',stId:'ST1',deptId:'D1',
+   status:'active',start:'2025-07-01',end:'2025-12-31',
+   milestones:[
+     {id:'MS1',name:'System Setup & Data Integration',status:'completed',deadline:'2025-07-30',completed:'2025-07-25',amt:750000,payStatus:'paid',payDate:'2025-08-02',
+      subs:[{date:'2025-07-25',files:['DataPipeline_Report.pdf','Cloud_Setup.pdf','ML_Model_v1.pdf'],notes:'All integration complete. 10yr IDSP data ingested. LSTM model 87% accuracy.',geo:{lat:18.52,lng:73.86,loc:'Pune DHO Office'}}],
+      veri:[{date:'2025-07-28',by:'U3',status:'verified',comment:'Pipeline verified. Accuracy 87.3%. Cloud infra reviewed.'}]},
+     {id:'MS2',name:'25 PHC Deployment',status:'completed',deadline:'2025-08-30',completed:'2025-08-22',amt:1500000,payStatus:'paid',payDate:'2025-08-28',
+      subs:[{date:'2025-08-22',files:['Deployment_25PHC.pdf','Dashboard.pdf','Alert_Demo.mp4'],notes:'25 Pune PHCs deployed. Dashboard live. 3 test alerts successful.',geo:{lat:18.52,lng:73.86,loc:'District Hospital Pune'}}],
+      veri:[{date:'2025-08-25',by:'U4',status:'verified',comment:'Field visit confirmed. 25 PHCs operational. Alerts working.'}]},
+     {id:'MS3',name:'AI Model Optimization',status:'in-progress',deadline:'2025-09-30',completed:null,amt:2250000,payStatus:'not-due',
+      subs:[{date:'2025-09-15',files:['Optimization_Progress.pdf','Accuracy_Metrics.xlsx'],notes:'Accuracy improved to 91.2%. Validation ongoing with 25 live PHCs.',geo:{lat:18.52,lng:73.86,loc:'HealthAI Office'}}],
+      veri:[]},
+     {id:'MS4',name:'Full 100 PHC Coverage',status:'pending',deadline:'2025-11-30',completed:null,amt:3000000,payStatus:'not-due',subs:[],veri:[]},
+   ],
+   risks:['Low bandwidth in remote PHCs','Staff training delay from election duty','Monsoon field deployment challenges'],
+   issues:[{date:'2025-08-15',desc:'5 PHCs in Junnar – unstable power',status:'mitigated',fix:'Solar-powered edge devices deployed'}]},
+];
+
+const initPayments=[
+  {id:'PAY1',pilId:'PIL1',msId:'MS1',amt:750000,status:'paid',approved:'2025-07-30',processed:'2025-08-02',ref:'PFMS-2025-MH-00451',by:'U1'},
+  {id:'PAY2',pilId:'PIL1',msId:'MS2',amt:1500000,status:'paid',approved:'2025-08-26',processed:'2025-08-28',ref:'PFMS-2025-MH-00523',by:'U1'},
+];
+
+const initAudit=[
+  {id:1,ts:'2025-05-10 09:15',user:'Dr. Meera Kulkarni',role:'govt',action:'Created challenge proposal',entity:'CH1',detail:'AI-Powered Disease Surveillance'},
+  {id:2,ts:'2025-05-18 14:30',user:'Adv. Sheetal Naik',role:'admin',action:'Approved challenge',entity:'CH1',detail:'Approved for publication'},
+  {id:3,ts:'2025-05-20 10:00',user:'Adv. Sheetal Naik',role:'admin',action:'Published challenge',entity:'CH1',detail:'Now visible on startup portal'},
+  {id:4,ts:'2025-05-25 11:30',user:'Rohit Deshmukh',role:'startup',action:'Applied to challenge',entity:'APP1',detail:'HealthAI → CH1'},
+  {id:5,ts:'2025-06-01 09:00',user:'Adv. Sheetal Naik',role:'admin',action:'Doc verification complete',entity:'APP1',detail:'All documents verified'},
+  {id:6,ts:'2025-06-05 14:00',user:'Shri Anil Deshmukh',role:'admin',action:'URL assessment complete',entity:'APP1',detail:'Score: 82/100 – Passed'},
+  {id:7,ts:'2025-06-10 16:00',user:'Adv. Sheetal Naik',role:'admin',action:'KPI assessment complete',entity:'APP1',detail:'All 4 KPIs passed'},
+  {id:8,ts:'2025-06-12 09:00',user:'Adv. Sheetal Naik',role:'admin',action:'Eligibility decision',entity:'APP1',detail:'Eligible – passed all stages'},
+  {id:9,ts:'2025-06-20 12:00',user:'System',role:'system',action:'Contracts signed',entity:'CON1',detail:'IP + Payment agreements signed'},
+  {id:10,ts:'2025-07-01 09:00',user:'System',role:'system',action:'Pilot initiated',entity:'PIL1',detail:'HealthAI pilot started'},
+  {id:11,ts:'2025-07-25 10:00',user:'Rohit Deshmukh',role:'startup',action:'Milestone submitted',entity:'MS1',detail:'System Setup evidence uploaded'},
+  {id:12,ts:'2025-07-28 14:00',user:'Shri Anil Deshmukh',role:'admin',action:'Milestone verified',entity:'MS1',detail:'M1 verified and approved'},
+  {id:13,ts:'2025-08-02 09:00',user:'Dr. Meera Kulkarni',role:'govt',action:'Payment approved',entity:'PAY1',detail:'₹7.5L via PFMS'},
+  {id:14,ts:'2025-08-22 10:00',user:'Rohit Deshmukh',role:'startup',action:'Milestone submitted',entity:'MS2',detail:'25 PHC evidence uploaded'},
+  {id:15,ts:'2025-08-28 09:00',user:'Dr. Meera Kulkarni',role:'govt',action:'Payment approved',entity:'PAY2',detail:'₹15L via PFMS'},
+  {id:16,ts:'2025-06-10 11:00',user:'Priya Sharma',role:'startup',action:'Applied to challenge',entity:'APP6',detail:'AquaWatch → CH2'},
+  {id:17,ts:'2025-06-05 09:00',user:'Priya Sharma',role:'startup',action:'Applied to challenge',entity:'APP7',detail:'AgroSense → CH6'},
+];
+
+const initNotifs=[
+  {id:'N1',uid:'U5',title:'Milestone MS3 deadline approaching',msg:'AI Model Optimization due 2025-09-30. 15 days left.',read:false,date:'2025-09-15'},
+  {id:'N2',uid:'U3',title:'New application on CH6',msg:'HealthAI applied to Multimodal Transit.',read:false,date:'2025-09-14'},
+  {id:'N3',uid:'U1',title:'MS2 evidence submitted',msg:'HealthAI submitted 25 PHC Deployment evidence.',read:true,date:'2025-08-22'},
+  {id:'N4',uid:'U5',title:'Payment received – ₹15L',msg:'Milestone 2 paid. Ref: PFMS-2025-MH-00523',read:true,date:'2025-08-28'},
+  {id:'N5',uid:'U3',title:'New challenge needs review',msg:'NLP Grievance Resolution submitted.',read:false,date:'2025-06-01'},
+  {id:'N6',uid:'U6',title:'Doc verification complete',msg:'Smart Irrigation docs verified.',read:true,date:'2025-05-28'},
+  {id:'N7',uid:'U3',title:'New application on CH2',msg:'AquaWatch applied to Smart Irrigation.',read:false,date:'2025-06-10'},
+  {id:'N8',uid:'U7',title:'Document review in progress',msg:'Your calibration report is being verified.',read:false,date:'2025-06-01'},
+];
+
+const initImpact=[
+  {id:'IMP1',pilId:'PIL1',chId:'CH1',stId:'ST1',status:'in-progress',
+   kpiResults:[
+     {kid:'K1',name:'PHC Coverage',target:'100 PHCs',achieved:'25 PHCs (pilot ongoing)',pct:25,status:'on-track'},
+     {kid:'K2',name:'Alert Latency',target:'<2 hours',achieved:'47 minutes average',pct:100,status:'exceeded'},
+     {kid:'K3',name:'Prediction Accuracy',target:'>90%',achieved:'91.2%',pct:100,status:'exceeded'},
+     {kid:'K4',name:'System Uptime',target:'>99.5%',achieved:'99.7%',pct:100,status:'exceeded'},
+   ],
+   deptFeedback:'Excellent progress. Alert system has already identified 2 potential outbreaks in Pune district that were confirmed and contained early.',
+   evalComments:'Strong performance across all KPIs. Coverage will reach target in Phase 4.',
+   scaleUpRecommendation:'Recommended for state-wide scale-up after 100 PHC milestone completion.',
+   scaleUpStatus:'awaiting-completion'},
+];
+
+const initScaleUp=[
+  {id:'SU1',impactId:'IMP1',chId:'CH1',stId:'ST1',status:'recommended',
+   recommendation:'Scale AI Disease Surveillance to all 36 districts. Estimated budget: ₹12 Cr for full state deployment.',
+   deptDecision:null,procurementStatus:'awaiting-pilot-completion',
+   timeline:'Full state deployment: 18 months after pilot completion',
+   estimatedBudget:120000000},
+];
+
+// ============ HELPERS ============
+const inr=n=>'₹'+Number(n).toLocaleString('en-IN');
+const inrL=n=>n>=10000000?'₹'+(n/10000000).toFixed(1)+'Cr':n>=100000?'₹'+(n/100000).toFixed(1)+'L':inr(n);
+const fd=d=>d?new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—';
+const gid=p=>p+'_'+Date.now().toString(36)+Math.random().toString(36).substr(2,3);
+
+const SC={Health:'#ef4444',Agriculture:'#22c55e',Water:'#3b82f6',Transport:'#f59e0b',Education:'#8b5cf6','E-Governance':'#06b6d4'};
+const SE={Health:'🏥',Agriculture:'🌾',Water:'💧',Transport:'🚌',Education:'📚','E-Governance':'🏛️'};
+const SS={
+  draft:{bg:'#f1f5f9',c:'#475569'},submitted:{bg:'#dbeafe',c:'#1e40af'},'under-review':{bg:'#fef3c7',c:'#92400e'},
+  approved:{bg:'#dcfce7',c:'#166534'},published:{bg:'#d1fae5',c:'#065f46'},rejected:{bg:'#fee2e2',c:'#991b1b'},
+  applied:{bg:'#dbeafe',c:'#1e40af'},'screening-doc':{bg:'#ede9fe',c:'#5b21b6'},'screening-url':{bg:'#ede9fe',c:'#5b21b6'},
+  'screening-kpi':{bg:'#ede9fe',c:'#5b21b6'},eligible:{bg:'#dcfce7',c:'#166534'},ineligible:{bg:'#fee2e2',c:'#991b1b'},
+  pilot:{bg:'#e0e7ff',c:'#3730a3'},active:{bg:'#d1fae5',c:'#065f46'},completed:{bg:'#dcfce7',c:'#166534'},
+  'in-progress':{bg:'#dbeafe',c:'#1e40af'},pending:{bg:'#fef3c7',c:'#92400e'},verified:{bg:'#dcfce7',c:'#166534'},
+  passed:{bg:'#dcfce7',c:'#166534'},failed:{bg:'#fee2e2',c:'#991b1b'},paid:{bg:'#dcfce7',c:'#166534'},
+  'not-due':{bg:'#f1f5f9',c:'#475569'},signed:{bg:'#dcfce7',c:'#166534'},mitigated:{bg:'#dcfce7',c:'#166534'},
+  'on-track':{bg:'#dbeafe',c:'#1e40af'},exceeded:{bg:'#dcfce7',c:'#166534'},recommended:{bg:'#d1fae5',c:'#065f46'},
+  'awaiting-completion':{bg:'#fef3c7',c:'#92400e'},'awaiting-pilot-completion':{bg:'#fef3c7',c:'#92400e'},
+  'changes-requested':{bg:'#ffedd5',c:'#9a3412'},open:{bg:'#dbeafe',c:'#1e40af'},
+};
+const SL={draft:'Draft',submitted:'Submitted','under-review':'Under Review',approved:'Approved',published:'Published',rejected:'Rejected',applied:'Applied','screening-doc':'Doc Verify','screening-url':'URL Assessment','screening-kpi':'KPI Check',eligible:'Eligible',ineligible:'Ineligible',pilot:'In Pilot',active:'Active',completed:'Completed','in-progress':'In Progress',pending:'Pending',verified:'Verified',passed:'Passed',failed:'Failed',paid:'Paid','not-due':'Not Due',signed:'Signed',mitigated:'Mitigated','on-track':'On Track',exceeded:'Exceeded',recommended:'Recommended','awaiting-completion':'Awaiting','awaiting-pilot-completion':'Awaiting Pilot','changes-requested':'Changes Req.'};
+
+// ============ COMPONENTS ============
+function B({s,l,cls=''}){const x=SS[s]||{bg:'#f1f5f9',c:'#475569'};return <span className={`badge ${cls}`} style={{background:x.bg,color:x.c}}>{l||SL[s]||s?.replace(/-/g,' ').toUpperCase()}</span>}
+function Av({name,sz=32,cl='#0d9488'}){const i=(name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();return <div style={{width:sz,height:sz,borderRadius:sz/2.5,background:cl,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:700,fontSize:sz*.35,flexShrink:0}}>{i}</div>}
+function PB({v,mx=100,cl='#14b8a6',h=7}){return <div style={{height:h,background:'#e2e8f0',borderRadius:99,overflow:'hidden'}}><div style={{height:'100%',width:Math.min(100,Math.round(v/mx*100))+'%',background:cl,borderRadius:99,transition:'width .8s'}}/></div>}
+function SC2({icon,label,value,sub,cl='#14b8a6'}){return <div className="card" style={{padding:14}}><div style={{display:'flex',alignItems:'flex-start',gap:10}}><div style={{width:38,height:38,borderRadius:10,background:cl+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{icon}</div><div style={{minWidth:0}}><div style={{fontSize:20,fontWeight:800,color:'#0f172a',lineHeight:1}}>{value}</div><div style={{fontSize:11,fontWeight:600,color:'#475569',marginTop:3}}>{label}</div>{sub&&<div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{sub}</div>}</div></div></div>}
+function BC({data,h=150}){const mx=Math.max(...data.map(d=>d.v),1);return <div style={{display:'flex',alignItems:'flex-end',gap:5,height:h,paddingTop:6}}>{data.map((d,i)=><div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}><span style={{fontSize:9,fontWeight:700,color:'#374151'}}>{d.v}</span><div style={{width:'100%',maxWidth:36,height:Math.max(3,(d.v/mx)*(h-36)),background:d.c||'#14b8a6',borderRadius:'4px 4px 0 0',transition:'height .8s'}}/><span style={{fontSize:8,color:'#64748b',textAlign:'center',lineHeight:1.2}}>{d.l}</span></div>)}</div>}
+function DC({data,sz=100}){const t=data.reduce((a,d)=>a+d.v,0)||1;let ang=-90;const cx=sz/2,cy=sz/2,r=sz*.36,ir=sz*.22;return <svg width={sz} height={sz} viewBox={`0 0 ${sz} ${sz}`}>{data.map((d,i)=>{const sw=(d.v/t)*360;const a1=ang*(Math.PI/180),a2=(ang+sw)*(Math.PI/180);const p=`M ${cx+ir*Math.cos(a1)} ${cy+ir*Math.sin(a1)} L ${cx+r*Math.cos(a1)} ${cy+r*Math.sin(a1)} A ${r} ${r} 0 ${sw>180?1:0} 1 ${cx+r*Math.cos(a2)} ${cy+r*Math.sin(a2)} L ${cx+ir*Math.cos(a2)} ${cy+ir*Math.sin(a2)} A ${ir} ${ir} 0 ${sw>180?1:0} 0 ${cx+ir*Math.cos(a1)} ${cy+ir*Math.sin(a1)} Z`;ang+=sw;return <path key={i} d={p} fill={d.c} stroke="#fff" strokeWidth={1.5}/>})}<text x={cx} y={cy-1} textAnchor="middle" dominantBaseline="middle" fontSize={sz*.13} fontWeight="800" fill="#0f172a">{t}</text><text x={cx} y={cy+sz*.11} textAnchor="middle" dominantBaseline="middle" fontSize={sz*.08} fill="#94a3b8">total</text></svg>}
+function Mod({open,close,title,children,wide}){if(!open)return null;return <div className="modal-bg" onClick={close}><div className="modal-box fade-in" style={{maxWidth:wide?820:520}} onClick={e=>e.stopPropagation()}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',borderBottom:'1px solid #e2e8f0',position:'sticky',top:0,background:'#fff',zIndex:10,borderRadius:'18px 18px 0 0'}}><h3 style={{fontSize:15,fontWeight:700,color:'#0f172a',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{title}</h3><button className="btn btn-o btn-sm" onClick={close} style={{padding:'3px 7px',flexShrink:0}}>✕</button></div><div style={{padding:18}}>{children}</div></div></div>}
+function Stepper({steps,cur}){return <div style={{display:'flex',alignItems:'center',overflowX:'auto',paddingBottom:6,gap:0}}>{steps.map((s,i)=><React.Fragment key={i}><div style={{display:'flex',flexDirection:'column',alignItems:'center',minWidth:50,flexShrink:0}}><div style={{width:26,height:26,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:10,background:i<cur?'#10b981':i===cur?'#2563eb':'#e2e8f0',color:i<=cur?'#fff':'#94a3b8',boxShadow:i===cur?'0 0 0 3px #bfdbfe':'none',transition:'all .3s'}}>{i<cur?'✓':i+1}</div><span style={{fontSize:8,marginTop:3,textAlign:'center',maxWidth:52,lineHeight:1.2,fontWeight:i===cur?600:400,color:i<=cur?'#1e293b':'#94a3b8'}}>{s}</span></div>{i<steps.length-1&&<div style={{height:2,flex:1,minWidth:10,background:i<cur?'#10b981':'#e2e8f0',marginBottom:16}}/>}</React.Fragment>)}</div>}
+function Empty({icon='📋',title,desc}){return <div style={{textAlign:'center',padding:'36px 20px',color:'#94a3b8'}}><div style={{fontSize:40,marginBottom:10}}>{icon}</div><div style={{fontSize:14,fontWeight:600,color:'#64748b'}}>{title||'No data'}</div>{desc&&<div style={{fontSize:12,marginTop:4,maxWidth:280,margin:'4px auto 0'}}>{desc}</div>}</div>}
+
+// ============ LANDING ============
+function Landing({nav}){
+  const stats=[{v:'6',l:'Challenges',i:'📋'},{v:'12+',l:'Startups',i:'🚀'},{v:'₹3.04Cr',l:'Budget',i:'💰'},{v:'3',l:'Pilots',i:'🔬'}];
+  const steps=[{i:'🏛️',t:'Govt Posts Challenge',d:'Define real problems with KPIs'},{i:'🔎',t:'MSInS Reviews',d:'Quality & feasibility check'},{i:'🚀',t:'Startups Apply',d:'Submit innovative solutions'},{i:'📋',t:'3-Stage Screening',d:'Doc, URL, KPI evaluation'},{i:'📜',t:'Digital Contracts',d:'IP & payment agreements'},{i:'🔬',t:'Pilot Execution',d:'Milestone-based delivery'},{i:'💰',t:'PFMS Payments',d:'Verified milestone payments'},{i:'📈',t:'Impact & Scale-Up',d:'Procurement pathway'}];
+  return(
+    <div className="fade-in" style={{minHeight:'100vh',background:'#fff'}}>
+      <nav style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 20px',borderBottom:'1px solid #f1f5f9',position:'sticky',top:0,background:'#fff',zIndex:100}}>
+        <div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:32,height:32,borderRadius:9,background:'linear-gradient(135deg,#14b8a6,#0d9488)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:900,fontSize:16}}>G</div><span style={{fontSize:16,fontWeight:900,color:'#0f172a'}}>GATI</span></div>
+        <div style={{display:'flex',gap:6}}><button className="btn btn-o btn-sm" onClick={()=>nav('login')}>Log In</button><button className="btn btn-p btn-sm" onClick={()=>nav('signup')}>Sign Up</button></div>
+      </nav>
+      <section style={{background:'linear-gradient(135deg,#020617,#0f2040,#020617)',padding:'60px 20px 50px',textAlign:'center',color:'#fff'}}>
+        <div style={{maxWidth:640,margin:'0 auto'}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#14b8a6',letterSpacing:'.15em',textTransform:'uppercase',marginBottom:14,background:'rgba(20,184,166,.1)',display:'inline-block',padding:'4px 14px',borderRadius:99,border:'1px solid rgba(20,184,166,.3)'}}>SIH 2026 · PS-26136</div>
+          <h1 style={{fontSize:'clamp(28px,5.5vw,48px)',fontWeight:900,letterSpacing:'-1px',lineHeight:1.1,marginBottom:14}}>Government–Startup<br/><span style={{color:'#14b8a6'}}>Innovation Platform</span></h1>
+          <p style={{fontSize:'clamp(13px,2.5vw,16px)',color:'rgba(255,255,255,.55)',maxWidth:460,margin:'0 auto 24px',lineHeight:1.6}}>Bridging Government Challenges with Startup Innovation</p>
+          <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+            <button className="btn btn-p" style={{padding:'12px 24px',fontSize:14}} onClick={()=>nav('signup')}>🚀 Get Started</button>
+            <button className="btn" style={{padding:'12px 24px',fontSize:14,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.05)',color:'#fff',borderRadius:9}} onClick={()=>nav('login')}>Log In →</button>
+          </div>
+        </div>
+      </section>
+      <section style={{maxWidth:800,margin:'-32px auto 0',padding:'0 20px',position:'relative',zIndex:10}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}} className="sg">{stats.map(s=><div key={s.l} className="card" style={{padding:12,textAlign:'center'}}><div style={{fontSize:20,marginBottom:2}}>{s.i}</div><div style={{fontSize:18,fontWeight:900,color:'#0f172a'}}>{s.v}</div><div style={{fontSize:10,color:'#64748b',marginTop:1}}>{s.l}</div></div>)}</div>
+      </section>
+      <section style={{maxWidth:900,margin:'0 auto',padding:'48px 20px'}}>
+        <h2 style={{fontSize:24,fontWeight:800,color:'#0f172a',textAlign:'center',marginBottom:8}}>How GATI Works</h2>
+        <p style={{color:'#64748b',textAlign:'center',marginBottom:28,fontSize:14}}>Complete workflow from challenge to procurement</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12}} className="rg">{steps.map((s,i)=><div key={i} className="card" style={{padding:14,textAlign:'center',borderTop:`3px solid ${['#ef4444','#f59e0b','#3b82f6','#8b5cf6','#14b8a6','#06b6d4','#22c55e','#f97316'][i]}`}}><div style={{fontSize:24,marginBottom:6}}>{s.i}</div><div style={{fontSize:9,fontWeight:700,color:'#94a3b8',marginBottom:3}}>STEP {i+1}</div><div style={{fontSize:12,fontWeight:700,color:'#0f172a',marginBottom:3}}>{s.t}</div><div style={{fontSize:10,color:'#64748b',lineHeight:1.4}}>{s.d}</div></div>)}</div>
+      </section>
+      <section style={{background:'#f8fafc',padding:'48px 20px'}}>
+        <div style={{maxWidth:900,margin:'0 auto'}}>
+          <h2 style={{fontSize:24,fontWeight:800,color:'#0f172a',textAlign:'center',marginBottom:24}}>Active Challenges</h2>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}} className="rg">
+            {initChallenges.filter(c=>c.status==='published').slice(0,3).map(c=>(
+              <div key={c.id} className="card" style={{padding:14}}>
+                <div style={{display:'flex',gap:5,marginBottom:8,flexWrap:'wrap'}}><B s={c.status}/><span style={{fontSize:9,fontWeight:600,background:(SC[c.sector]||'#94a3b8')+'20',color:SC[c.sector],padding:'2px 7px',borderRadius:5}}>{c.sector}</span></div>
+                <h3 style={{fontSize:13,fontWeight:700,color:'#0f172a',lineHeight:1.35,marginBottom:6}}>{c.title}</h3>
+                <p style={{fontSize:11,color:'#64748b',lineHeight:1.5,marginBottom:8,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.problem}</p>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#94a3b8'}}><span>💰 {inrL(c.budget)}</span><span>📍 {c.city}</span><span>⏳ {fd(c.deadline)}</span></div>
+              </div>
+            ))}
+          </div>
+          <div style={{textAlign:'center',marginTop:20}}><button className="btn btn-o" onClick={()=>nav('login')}>View All Challenges →</button></div>
+        </div>
+      </section>
+      <footer style={{background:'#0f172a',color:'rgba(255,255,255,.4)',padding:'32px 20px',textAlign:'center'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginBottom:10}}><div style={{width:24,height:24,borderRadius:6,background:'linear-gradient(135deg,#14b8a6,#0d9488)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:900,fontSize:12}}>G</div><span style={{fontSize:12,fontWeight:700,color:'#fff'}}>GATI</span></div>
+        <p style={{fontSize:11,lineHeight:1.6}}>Government–Startup Innovation & Transformation Interface<br/>SIH 2026 · PS-26136 · MSInS Maharashtra<br/><span style={{fontSize:10,color:'rgba(255,255,255,.25)'}}>Prototype – Demo data only</span></p>
+      </footer>
+    </div>
+  );
+}
+
+// ============ LOGIN ============
+function Login({onLogin,nav}){
+  const [e,setE]=useState('');const [p,setP]=useState('');const [err,setErr]=useState('');const [ld,setLd]=useState(false);
+  const ql=[{r:'govt',e:'health@mh.gov.in',p:'gov123',l:'Government',em:'🏛️',c:'#0d9488'},{r:'admin',e:'admin@msins.in',p:'admin123',l:'MSInS Admin',em:'🛡️',c:'#7e22ce'},{r:'startup',e:'rohit@healthai.in',p:'start123',l:'Startup',em:'🚀',c:'#2563eb'}];
+  const doLogin=()=>{setErr('');setLd(true);setTimeout(()=>{const u=USERS.find(u=>u.email===e&&u.password===p);if(u)onLogin(u);else{setErr('Invalid credentials. Try demo login.');setLd(false);}},600)};
+  const quick=q=>{setE(q.e);setP(q.p);setTimeout(()=>{const u=USERS.find(u=>u.email===q.e);if(u)onLogin(u);},400)};
+  return(
+    <div className="fade-in" style={{minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+      <div style={{padding:'10px 20px',borderBottom:'1px solid #f1f5f9'}}><button className="btn" style={{background:'none',padding:0,fontSize:12,color:'#64748b'}} onClick={()=>nav('landing')}>← Back</button></div>
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+        <div style={{width:'100%',maxWidth:380}}>
+          <div style={{textAlign:'center',marginBottom:24}}>
+            <div style={{width:48,height:48,borderRadius:14,background:'linear-gradient(135deg,#14b8a6,#0d9488)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:900,fontSize:22,margin:'0 auto 10px'}}>G</div>
+            <h1 style={{fontSize:22,fontWeight:800,color:'#0f172a',marginBottom:3}}>Welcome to GATI</h1>
+            <p style={{fontSize:13,color:'#64748b'}}>Log in to your account</p>
+          </div>
+          <div style={{marginBottom:12}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:4}}>Email</label><input className="input" type="email" placeholder="your@email.com" value={e} onChange={x=>{setE(x.target.value);setErr('')}}/></div>
+          <div style={{marginBottom:12}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:4}}>Password</label><input className="input" type="password" placeholder="Password" value={p} onChange={x=>{setP(x.target.value);setErr('')}} onKeyDown={x=>x.key==='Enter'&&doLogin()}/></div>
+          {err&&<div style={{background:'#fef2f2',border:'1px solid #fca5a5',borderRadius:8,padding:'8px 12px',fontSize:11,color:'#dc2626',marginBottom:10}}>{err}</div>}
+          <button className="btn btn-p" style={{width:'100%',padding:10,marginBottom:14}} onClick={doLogin} disabled={ld||!e||!p}>{ld?<><span className="spinner"/>Signing in…</>:'🔐 Log In'}</button>
+          <div style={{textAlign:'center',fontSize:12,color:'#64748b',marginBottom:16}}>No account? <button style={{border:'none',background:'none',cursor:'pointer',color:'#0d9488',fontWeight:700,fontSize:12,fontFamily:'inherit'}} onClick={()=>nav('signup')}>Sign Up</button></div>
+          <div style={{borderTop:'1px solid #e2e8f0',paddingTop:14}}>
+            <div style={{fontSize:10,fontWeight:700,color:'#94a3b8',textAlign:'center',marginBottom:8,textTransform:'uppercase',letterSpacing:'.05em'}}>Demo Quick Login</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>{ql.map(q=><button key={q.r} onClick={()=>quick(q)} className="card" style={{padding:8,cursor:'pointer',textAlign:'center',border:'1.5px solid #e2e8f0'}}><div style={{fontSize:18,marginBottom:2}}>{q.em}</div><div style={{fontSize:9,fontWeight:700,color:'#0f172a'}}>{q.l}</div></button>)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Signup({nav}){
+  const [role,setRole]=useState('');const [step,setStep]=useState(0);const [done,setDone]=useState(false);
+  const roles=[{k:'govt',l:'Government',d:'Post challenges, verify impact',em:'🏛️',c:'#0d9488'},{k:'admin',l:'MSInS Admin',d:'Review, screen, coordinate',em:'🛡️',c:'#7e22ce'},{k:'startup',l:'Startup',d:'Apply, pilot, receive payments',em:'🚀',c:'#2563eb'}];
+  if(done)return <div className="fade-in" style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}><div style={{textAlign:'center',maxWidth:360}}><div style={{fontSize:48,marginBottom:12}}>✅</div><h2 style={{fontSize:20,fontWeight:800,marginBottom:6}}>Welcome to GATI!</h2><p style={{fontSize:13,color:'#64748b',marginBottom:20}}>Account created. You can now log in.</p><button className="btn btn-p" onClick={()=>nav('login')} style={{width:'100%',padding:10}}>🔐 Go to Login</button></div></div>;
+  return(
+    <div className="fade-in" style={{minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+      <div style={{padding:'10px 20px',borderBottom:'1px solid #f1f5f9'}}><button className="btn" style={{background:'none',padding:0,fontSize:12,color:'#64748b'}} onClick={()=>step>0?setStep(step-1):nav('landing')}>← {step>0?'Back':'Home'}</button></div>
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+        <div style={{width:'100%',maxWidth:420}}>
+          <Stepper steps={['Role','Details','Done']} cur={step}/>
+          {step===0&&<div className="fade-in"><h2 style={{fontSize:20,fontWeight:800,marginBottom:4}}>Choose your role</h2><p style={{fontSize:13,color:'#64748b',marginBottom:16}}>How will you use GATI?</p>{roles.map(r=><div key={r.k} className="card" onClick={()=>setRole(r.k)} style={{padding:12,cursor:'pointer',marginBottom:8,border:`2px solid ${role===r.k?r.c:'#e2e8f0'}`,display:'flex',alignItems:'center',gap:10}}><div style={{width:36,height:36,borderRadius:10,background:r.c+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{r.em}</div><div style={{flex:1}}><div style={{fontSize:13,fontWeight:700}}>{r.l}</div><div style={{fontSize:10,color:'#64748b'}}>{r.d}</div></div></div>)}<button className="btn btn-p" style={{width:'100%',marginTop:12}} disabled={!role} onClick={()=>setStep(1)}>Continue →</button></div>}
+          {step===1&&<div className="fade-in"><h2 style={{fontSize:20,fontWeight:800,marginBottom:12}}>Create account</h2><div style={{marginBottom:10}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:4}}>Full Name</label><input className="input" placeholder="Your Name"/></div><div style={{marginBottom:10}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:4}}>Email</label><input className="input" type="email" placeholder="your@email.com"/></div><div style={{marginBottom:10}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:4}}>Password</label><input className="input" type="password" placeholder="Min 6 characters"/></div><button className="btn btn-p" style={{width:'100%',marginTop:8}} onClick={()=>{setStep(2);setTimeout(()=>setDone(true),1000)}}>Create Account</button><div style={{textAlign:'center',marginTop:10,fontSize:12,color:'#64748b'}}>Have account? <button style={{border:'none',background:'none',color:'#0d9488',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}} onClick={()=>nav('login')}>Log In</button></div></div>}
+          {step===2&&!done&&<div style={{textAlign:'center',padding:'40px 0'}}><div className="spinner" style={{width:28,height:28,border:'3px solid #14b8a6',borderTopColor:'transparent',margin:'0 auto 14px'}}/><p style={{color:'#64748b',fontSize:13}}>Creating account...</p></div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ LAYOUT ============
+function Layout({user,logout,children}){
+  const {page,setPage,sideOpen,setSideOpen,notifs}=useApp();
+  const [nOpen,setNOpen]=useState(false);const [pOpen,setPOpen]=useState(false);
+  const rc={govt:{bg:'#0d9488',l:'Government'},admin:{bg:'#7e22ce',l:'MSInS Admin'},startup:{bg:'#2563eb',l:'Startup'}};
+  const cfg=rc[user.role]||rc.admin;
+  const un=notifs.filter(n=>n.uid===user.id&&!n.read).length;
+  const navs={
+    govt:[{k:'dashboard',i:'📊',l:'Dashboard'},{k:'challenges',i:'📋',l:'My Challenges'},{k:'create',i:'➕',l:'Create Challenge'},{k:'apps',i:'📁',l:'Applications'},{k:'pilots',i:'🔬',l:'Pilots'},{k:'payments',i:'💰',l:'Payments'},{k:'impact',i:'📈',l:'Impact & Scale-Up'}],
+    admin:[{k:'dashboard',i:'📊',l:'Dashboard'},{k:'review',i:'📋',l:'Challenge Review'},{k:'published',i:'📢',l:'Published'},{k:'screening',i:'🔎',l:'Screening'},{k:'contracts',i:'📜',l:'Contracts'},{k:'pilots',i:'🔬',l:'Pilots'},{k:'payments',i:'💰',l:'Payments'},{k:'analytics',i:'📈',l:'Analytics'},{k:'audit',i:'🗃️',l:'Audit Log'},{k:'users',i:'👥',l:'Users'}],
+    startup:[{k:'dashboard',i:'📊',l:'Dashboard'},{k:'profile',i:'👤',l:'Profile'},{k:'browse',i:'🔍',l:'Browse Challenges'},{k:'apps',i:'📁',l:'Applications'},{k:'contracts',i:'📜',l:'Contracts'},{k:'pilots',i:'🔬',l:'Pilot Workspace'},{k:'payments',i:'💰',l:'Payments'},{k:'impact',i:'📈',l:'Impact'}],
+  };
+  return(
+    <div style={{minHeight:'100vh',background:'#f1f5f9'}}>
+      <div className="topbar">
+        <button className="btn mm" style={{display:'none',background:'none',padding:3}} onClick={()=>setSideOpen(!sideOpen)}><span style={{fontSize:18}}>☰</span></button>
+        <div style={{display:'flex',alignItems:'center',gap:7}} className="hm"><div style={{width:30,height:30,borderRadius:8,background:'linear-gradient(135deg,#14b8a6,#0d9488)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:900,fontSize:14}}>G</div><div><div style={{fontSize:13,fontWeight:800,color:'#0f172a',lineHeight:1}}>GATI</div><div style={{fontSize:8,color:'#94a3b8'}}>GovTech</div></div></div>
+        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6}}>
+          <div style={{position:'relative'}}><button className="btn" style={{background:'#f8fafc',padding:'5px 7px',border:'1px solid #e2e8f0',borderRadius:7,fontSize:15,position:'relative'}} onClick={()=>{setNOpen(!nOpen);setPOpen(false)}}>🔔{un>0&&<span style={{position:'absolute',top:2,right:2,width:13,height:13,background:'#ef4444',borderRadius:'50%',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{un}</span>}</button>
+            {nOpen&&<div className="card fade-in" style={{position:'absolute',right:0,top:40,width:280,zIndex:600,padding:0,maxHeight:320,overflowY:'auto'}}><div style={{padding:'8px 12px',borderBottom:'1px solid #f1f5f9',fontWeight:700,fontSize:12}}>Notifications</div>{notifs.filter(n=>n.uid===user.id).slice(0,6).map(n=><div key={n.id} style={{padding:'8px 12px',borderBottom:'1px solid #f8fafc',background:n.read?'#fff':'#eff6ff'}}><div style={{fontSize:11,fontWeight:n.read?400:600}}>{n.title}</div><div style={{fontSize:10,color:'#64748b',marginTop:1}}>{n.msg}</div><div style={{fontSize:9,color:'#94a3b8',marginTop:2}}>{fd(n.date)}</div></div>)}</div>}
+          </div>
+          <div style={{position:'relative'}}><button className="btn" style={{background:'#f8fafc',padding:'3px 8px',border:'1px solid #e2e8f0',borderRadius:7,display:'flex',alignItems:'center',gap:5,fontSize:12}} onClick={()=>{setPOpen(!pOpen);setNOpen(false)}}><Av name={user.name} sz={22} cl={cfg.bg}/><span className="hm" style={{fontWeight:600,color:'#374151'}}>{user.name.split(' ')[0]}</span></button>
+            {pOpen&&<div className="card fade-in" style={{position:'absolute',right:0,top:40,width:200,zIndex:600,padding:6}}><div style={{padding:'6px 8px',borderBottom:'1px solid #f1f5f9',marginBottom:4}}><div style={{fontSize:12,fontWeight:700}}>{user.name}</div><div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{user.email}</div><div style={{marginTop:3}}><B s={user.role==='admin'?'passed':user.role==='govt'?'verified':'open'} l={cfg.l}/></div></div><button className="btn" style={{width:'100%',justifyContent:'flex-start',background:'none',padding:'6px 8px',fontSize:12,color:'#dc2626',fontWeight:600,borderRadius:6}} onClick={logout}>🚪 Log Out</button></div>}
+          </div>
+        </div>
+      </div>
+      <div className={`sidebar ${sideOpen?'open':''}`} style={{background:cfg.bg}}>
+        <div style={{padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,.12)'}}><div style={{fontSize:9,fontWeight:700,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.05em',marginBottom:3}}>{cfg.l}</div><div style={{fontSize:12,fontWeight:700,color:'#fff'}}>{user.name}</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)',marginTop:2}}>{user.dept||user.company||''}</div></div>
+        <nav style={{padding:'6px 0'}}>{navs[user.role]?.map(item=><button key={item.k} className={`si ${page===item.k?'act':''}`} onClick={()=>{setPage(item.k);setSideOpen(false)}}><span style={{fontSize:14}}>{item.i}</span>{item.l}</button>)}</nav>
+        <div style={{padding:'10px 14px',borderTop:'1px solid rgba(255,255,255,.1)',marginTop:'auto'}}><div style={{fontSize:8,color:'rgba(255,255,255,.2)',textAlign:'center',lineHeight:1.5}}>GATI · GovTech Platform<br/>Maharashtra © 2025</div></div>
+      </div>
+      {sideOpen&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.3)',zIndex:200}} onClick={()=>setSideOpen(false)}/>}
+      <main className="mc" style={{marginLeft:230,marginTop:56,padding:16,minHeight:'calc(100vh - 56px)'}}><div style={{maxWidth:1050}}>{children}</div></main>
+    </div>
+  );
+}
+
+// ============ GOVT SCREENS ============
+function GDash({setP}){
+  const {chs,apps,pils,pays}=useApp();
+  const paid=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amt,0);
+  return <div className="fade-in">
+    <div style={{marginBottom:16}}><h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px'}}>Government Dashboard</h1><p style={{fontSize:12,color:'#64748b',marginTop:2}}>Department of Public Health – Overview</p></div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:10,marginBottom:16}} className="sg">
+      <SC2 icon="📋" label="Challenges" value={chs.length} cl="#0d9488"/>
+      <SC2 icon="📢" label="Published" value={chs.filter(c=>c.status==='published').length} cl="#2563eb"/>
+      <SC2 icon="🔬" label="Active Pilots" value={pils.filter(p=>p.status==='active').length} cl="#8b5cf6"/>
+      <SC2 icon="💰" label="Paid Out" value={inrL(paid)} cl="#f59e0b"/>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}} className="rg">
+      <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Application Pipeline</h3>
+        <BC data={[{l:'Applied',v:apps.filter(a=>a.status==='applied').length||1,c:'#3b82f6'},{l:'Doc',v:apps.filter(a=>a.status==='screening-doc').length||2,c:'#8b5cf6'},{l:'URL',v:apps.filter(a=>a.status==='screening-url').length||1,c:'#f59e0b'},{l:'KPI',v:apps.filter(a=>a.status==='screening-kpi').length||1,c:'#06b6d4'},{l:'Pilot',v:pils.length,c:'#10b981'},{l:'Reject',v:apps.filter(a=>a.status==='rejected').length||1,c:'#ef4444'}]} h={130}/></div>
+      <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Challenge Status</h3>
+        <div style={{display:'flex',alignItems:'center',gap:14}}>
+          <DC data={[{l:'Published',v:chs.filter(c=>c.status==='published').length,c:'#10b981'},{l:'Review',v:chs.filter(c=>c.status==='under-review').length,c:'#f59e0b'},{l:'Draft',v:chs.filter(c=>c.status==='draft').length,c:'#94a3b8'}]} sz={90}/>
+          <div>{[{l:'Published',c:'#10b981'},{l:'Under Review',c:'#f59e0b'},{l:'Draft',c:'#94a3b8'}].map(x=><div key={x.l} style={{display:'flex',alignItems:'center',gap:5,marginBottom:5}}><div style={{width:7,height:7,borderRadius:2,background:x.c}}/><span style={{fontSize:10,color:'#475569'}}>{x.l}</span></div>)}</div>
+        </div>
+      </div>
+    </div>
+    <div className="card" style={{padding:14}}>
+      <h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Your Challenges</h3>
+      <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}><thead><tr style={{borderBottom:'1px solid #e2e8f0'}}><th style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Challenge</th><th className="hm" style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Sector</th><th style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Status</th><th className="hm" style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Budget</th><th className="hm" style={{textAlign:'right',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Apps</th></tr></thead><tbody>
+        {chs.map(c=><tr key={c.id} style={{borderBottom:'1px solid #f1f5f9'}}><td style={{padding:'8px',fontWeight:600,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.title}</td><td className="hm" style={{padding:'8px'}}><span style={{fontSize:9,fontWeight:600,background:(SC[c.sector]||'#94a3b8')+'20',color:SC[c.sector],padding:'2px 6px',borderRadius:4}}>{c.sector}</span></td><td style={{padding:'8px'}}><B s={c.status}/></td><td className="hm" style={{padding:'8px',fontWeight:600}}>{inrL(c.budget)}</td><td className="hm" style={{padding:'8px',textAlign:'right'}}>{c.applicants||0}</td></tr>)}
+      </tbody></table></div>
+    </div>
+  </div>;
+}
+
+function CreateCh(){
+  const {addCh,setPage}=useApp();
+  const [f,setF]=useState({title:'',sector:'Health',problem:'',background:'',outcomes:'',requirements:'',geography:'',budget:'',duration:'',deadline:'',kpis:[{name:'',target:'',weight:'',method:''}]});
+  const [done,setDone]=useState(false);
+  const addK=()=>setF(x=>({...x,kpis:[...x.kpis,{name:'',target:'',weight:'',method:''}]}));
+  const updK=(i,k,v)=>{const ks=[...f.kpis];ks[i]={...ks[i],[k]:v};setF(x=>({...x,kpis:ks}))};
+  const submit=st=>{addCh({id:gid('CH'),title:f.title,dept:'Dept. of Public Health',deptId:'D1',sector:f.sector,city:'Mumbai',status:st,budget:Number(f.budget)||0,deadline:f.deadline,pilotDuration:f.duration,problem:f.problem,background:f.background,outcomes:f.outcomes,requirements:f.requirements,geography:f.geography,kpis:f.kpis.filter(k=>k.name).map(k=>({id:gid('K'),...k,weight:Number(k.weight)||0})),proposedDate:new Date().toISOString().split('T')[0],applicants:0,reviews:[]});setDone(true);setTimeout(()=>setPage('challenges'),1500)};
+  if(done)return <div className="fade-in" style={{textAlign:'center',padding:'48px 20px'}}><div style={{fontSize:48,marginBottom:12}}>✅</div><h2 style={{fontSize:18,fontWeight:800}}>Challenge Submitted!</h2><p style={{fontSize:13,color:'#64748b',marginTop:4}}>Sent to MSInS for review.</p></div>;
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Create New Challenge</h1>
+    <div className="card" style={{padding:16}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}} className="rg">
+        <div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Title *</label><input className="input" placeholder="e.g., AI-Powered Monitoring" value={f.title} onChange={e=>setF({...f,title:e.target.value})}/></div>
+        <div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Sector</label><select className="input" value={f.sector} onChange={e=>setF({...f,sector:e.target.value})}>{Object.keys(SC).map(s=><option key={s}>{s}</option>)}</select></div>
+      </div>
+      <div style={{marginBottom:10}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Problem Statement *</label><textarea className="input" rows={3} placeholder="Describe the problem..." value={f.problem} onChange={e=>setF({...f,problem:e.target.value})} style={{resize:'vertical'}}/></div>
+      <div style={{marginBottom:10}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Expected Outcomes *</label><textarea className="input" rows={2} placeholder="What should be achieved?" value={f.outcomes} onChange={e=>setF({...f,outcomes:e.target.value})} style={{resize:'vertical'}}/></div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:10}} className="rg">
+        <div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Budget (₹) *</label><input className="input" type="number" placeholder="5000000" value={f.budget} onChange={e=>setF({...f,budget:e.target.value})}/></div>
+        <div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Duration</label><input className="input" placeholder="6 months" value={f.duration} onChange={e=>setF({...f,duration:e.target.value})}/></div>
+        <div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Deadline</label><input className="input" type="date" value={f.deadline} onChange={e=>setF({...f,deadline:e.target.value})}/></div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}><label style={{fontSize:12,fontWeight:700}}>KPIs</label><button className="btn btn-o btn-sm" onClick={addK}>+ Add KPI</button></div>
+        {f.kpis.map((k,i)=><div key={i} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:6,marginBottom:6}} className="rg"><input className="input" placeholder="KPI Name" value={k.name} onChange={e=>updK(i,'name',e.target.value)} style={{fontSize:12,padding:'7px 9px'}}/><input className="input" placeholder="Target" value={k.target} onChange={e=>updK(i,'target',e.target.value)} style={{fontSize:12,padding:'7px 9px'}}/><input className="input" type="number" placeholder="Weight%" value={k.weight} onChange={e=>updK(i,'weight',e.target.value)} style={{fontSize:12,padding:'7px 9px'}}/></div>)}
+      </div>
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end',borderTop:'1px solid #e2e8f0',paddingTop:12}}>
+        <button className="btn btn-o" onClick={()=>submit('draft')}>💾 Save Draft</button>
+        <button className="btn btn-p" onClick={()=>submit('under-review')} disabled={!f.title||!f.problem||!f.budget}>📤 Submit for Review</button>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============ ADMIN SCREENS ============
+function ADash(){
+  const {chs,apps,pils,pays,sts}=useApp();
+  const paid=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amt,0);
+  return <div className="fade-in">
+    <div style={{marginBottom:16}}><h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px'}}>MSInS Admin Dashboard</h1><p style={{fontSize:12,color:'#64748b',marginTop:2}}>Maharashtra State Innovation Society – Platform Overview</p></div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:10,marginBottom:16}} className="sg">
+      <SC2 icon="📋" label="Challenges" value={chs.length} cl="#0d9488"/>
+      <SC2 icon="⏳" label="Pending Review" value={chs.filter(c=>c.status==='under-review').length} sub="Needs attention" cl="#f59e0b"/>
+      <SC2 icon="📢" label="Published" value={chs.filter(c=>c.status==='published').length} cl="#2563eb"/>
+      <SC2 icon="🚀" label="Startups" value={sts.length} cl="#8b5cf6"/>
+      <SC2 icon="📁" label="Applications" value={apps.length} cl="#06b6d4"/>
+      <SC2 icon="🔬" label="Pilots" value={pils.filter(p=>p.status==='active').length} cl="#22c55e"/>
+      <SC2 icon="💰" label="Paid" value={inrL(paid)} cl="#f59e0b"/>
+      <SC2 icon="🔎" label="Screening" value={apps.filter(a=>a.status.startsWith('screening')).length} cl="#7e22ce"/>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}} className="rg">
+      <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Application Funnel</h3>
+        <BC data={[{l:'Applied',v:apps.length,c:'#3b82f6'},{l:'Doc✓',v:apps.filter(a=>a.scr?.doc?.status==='verified').length,c:'#8b5cf6'},{l:'URL✓',v:apps.filter(a=>a.scr?.url?.status==='passed').length,c:'#f59e0b'},{l:'KPI✓',v:apps.filter(a=>a.scr?.kpi?.status==='passed').length,c:'#06b6d4'},{l:'Eligible',v:apps.filter(a=>a.elig?.status==='eligible').length,c:'#10b981'},{l:'Pilot',v:pils.length,c:'#0d9488'}]} h={140}/></div>
+      <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Recent Activity</h3><div style={{maxHeight:180,overflowY:'auto'}}>
+        {initAudit.slice(-8).reverse().map(l=><div key={l.id} style={{padding:'6px 0',borderBottom:'1px solid #f8fafc',fontSize:11}}><span style={{fontWeight:600,color:{govt:'#0d9488',admin:'#7e22ce',startup:'#2563eb'}[l.role]||'#374151'}}>{l.user.split(' ')[0]} </span><span style={{color:'#475569'}}>{l.action}</span><div style={{fontSize:9,color:'#94a3b8',marginTop:1}}>{l.ts}</div></div>)}
+      </div></div>
+    </div>
+  </div>;
+}
+
+function RevQ(){
+  const {chs,updCh}=useApp();
+  const pend=chs.filter(c=>c.status==='under-review');
+  const [sel,setSel]=useState(null);const [cmt,setCmt]=useState('');
+  const act=(ch,a)=>{const u={...ch,status:a==='approve'?'approved':a==='reject'?'rejected':'changes-requested',reviews:[...(ch.reviews||[]),{by:'U3',date:new Date().toISOString().split('T')[0],action:a,comment:cmt}]};updCh(u);setSel(null);setCmt('')};
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Challenge Review Queue</h1>
+    {pend.length===0?<Empty icon="✅" title="No challenges pending review" desc="All submitted challenges have been reviewed."/>:pend.map(ch=><div key={ch.id} className="card" style={{padding:14,marginBottom:10}}><div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}><div style={{flex:1,minWidth:180}}><div style={{display:'flex',gap:5,marginBottom:5}}><B s={ch.status}/><span style={{fontSize:9,fontWeight:600,background:(SC[ch.sector]||'#94a3b8')+'20',color:SC[ch.sector],padding:'2px 6px',borderRadius:4}}>{ch.sector}</span></div><h3 style={{fontSize:14,fontWeight:700,marginBottom:3}}>{ch.title}</h3><p style={{fontSize:11,color:'#64748b',lineHeight:1.5}}>{ch.problem?.substring(0,120)}...</p><div style={{display:'flex',gap:10,marginTop:6,fontSize:10,color:'#94a3b8',flexWrap:'wrap'}}><span>🏛️ {ch.dept}</span><span>💰 {inrL(ch.budget)}</span><span>📍 {ch.city}</span><span>{ch.kpis?.length||0} KPIs</span></div></div><button className="btn btn-o btn-sm" onClick={()=>setSel(ch)}>Review →</button></div></div>)}
+    <Mod open={!!sel} close={()=>setSel(null)} title={`Review: ${sel?.title||''}`} wide>{sel&&<div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12,fontSize:12}} className="rg">{[['Department',sel.dept],['Sector',sel.sector],['Budget',inr(sel.budget)],['Duration',sel.pilotDuration],['Geography',sel.geography||'—'],['Proposed',fd(sel.proposedDate)]].map(([l,v])=><div key={l}><span style={{color:'#94a3b8'}}>{l}:</span> <strong>{v}</strong></div>)}</div>
+      <div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:3}}>Problem Statement</h4><p style={{fontSize:12,color:'#475569',lineHeight:1.6,background:'#f8fafc',padding:10,borderRadius:8}}>{sel.problem}</p></div>
+      {sel.outcomes&&<div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:3}}>Expected Outcomes</h4><p style={{fontSize:12,color:'#475569',lineHeight:1.6,background:'#f8fafc',padding:10,borderRadius:8}}>{sel.outcomes}</p></div>}
+      {sel.kpis?.length>0&&<div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:6}}>KPIs ({sel.kpis.length})</h4>{sel.kpis.map(k=><div key={k.id} style={{background:'#f0fdfa',border:'1px solid #ccfbf1',borderRadius:7,padding:8,marginBottom:4}}><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:11,fontWeight:600,color:'#0f766e'}}>{k.name}</span><span style={{fontSize:10,color:'#64748b'}}>Wt: {k.weight}%</span></div><div style={{fontSize:10,color:'#475569',marginTop:2}}>Target: <strong>{k.target}</strong></div></div>)}</div>}
+      <div style={{marginBottom:12}}><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Review Comments *</label><textarea className="input" rows={3} placeholder="Your comments..." value={cmt} onChange={e=>setCmt(e.target.value)} style={{resize:'vertical'}}/></div>
+      <div style={{display:'flex',gap:8,justifyContent:'flex-end',flexWrap:'wrap'}}><button className="btn btn-d btn-sm" onClick={()=>act(sel,'reject')} disabled={!cmt}>❌ Reject</button><button className="btn btn-a btn-sm" onClick={()=>act(sel,'changes-requested')} disabled={!cmt}>🔄 Changes</button><button className="btn btn-p" onClick={()=>act(sel,'approve')} disabled={!cmt}>✅ Approve</button></div>
+    </div>}</Mod>
+  </div>;
+}
+
+function AuditP(){
+  const [q,setQ]=useState('');
+  const logs=initAudit.filter(l=>!q||l.action.toLowerCase().includes(q.toLowerCase())||l.user.toLowerCase().includes(q.toLowerCase()));
+  return <div className="fade-in">
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexWrap:'wrap',gap:10}}>
+      <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px'}}>Audit Log</h1>
+      <div style={{position:'relative',minWidth:180}}><span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'#94a3b8'}}>🔍</span><input className="input" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search..." style={{paddingLeft:28,fontSize:12}}/></div>
+    </div>
+    <div className="card" style={{padding:0,overflow:'hidden'}}><div style={{maxHeight:500,overflowY:'auto'}}>
+      {logs.map(l=><div key={l.id} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderBottom:'1px solid #f1f5f9'}}>
+        <div style={{width:28,height:28,borderRadius:7,background:'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,flexShrink:0}}>{l.action.includes('Created')?'📝':l.action.includes('Approved')?'✅':l.action.includes('Published')?'📢':l.action.includes('Applied')?'📤':l.action.includes('Payment')?'💰':l.action.includes('Milestone')?'📋':'🔎'}</div>
+        <div style={{flex:1,minWidth:0}}><div style={{fontSize:11}}><span style={{fontWeight:600,color:{govt:'#0d9488',admin:'#7e22ce',startup:'#2563eb'}[l.role]||'#374151'}}>{l.user}</span> <span style={{color:'#475569'}}>{l.action}</span></div><div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{l.detail}</div></div>
+        <div style={{fontSize:9,color:'#94a3b8',whiteSpace:'nowrap',flexShrink:0}}>{l.ts}</div>
+      </div>)}
+    </div></div>
+  </div>;
+}
+
+// ============ SCREENING ============
+function ScrP(){
+  const {apps}=useApp();
+  const [sel,setSel]=useState(null);
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Eligibility Screening</h1>
+    <div style={{display:'grid',gridTemplateColumns:'220px 1fr',gap:12}} className="rg">
+      <div><div style={{fontSize:11,fontWeight:700,color:'#64748b',marginBottom:6}}>Applications ({apps.length})</div>{apps.map(a=>{const st=initStartups.find(s=>s.id===a.stId);return <button key={a.id} onClick={()=>setSel(a)} className="card" style={{padding:8,cursor:'pointer',textAlign:'left',width:'100%',marginBottom:5,border:`2px solid ${sel?.id===a.id?'#14b8a6':'#e2e8f0'}`,background:sel?.id===a.id?'#f0fdfa':'#fff'}}><div style={{fontSize:11,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{st?.name||'Unknown'}</div><div style={{marginTop:3}}><B s={a.status}/></div></button>})}</div>
+      <div>{sel?<div className="card" style={{padding:14}}><ScrDetail a={sel}/></div>:<Empty icon="👈" title="Select an application"/>}</div>
+    </div>
+  </div>;
+}
+
+function ScrDetail({a}){
+  const ch=initChallenges.find(c=>c.id===a.chId);const st=initStartups.find(s=>s.id===a.stId);
+  const ss=a.scr?.doc?.status==='verified'?(a.scr?.url?.status==='passed'?(a.scr?.kpi?.status==='passed'?3:2):1):0;
+  return <div>
+    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,flexWrap:'wrap'}}><Av name={st?.name||'?'} sz={32} cl="#2563eb"/><div><div style={{fontSize:14,fontWeight:700}}>{st?.name}</div><div style={{fontSize:11,color:'#64748b'}}>{ch?.title}</div></div><B s={a.status}/></div>
+    <Stepper steps={['Documents','URL Assessment','KPI Evaluation']} cur={ss}/>
+    {/* Stage 1 */}
+    <div style={{marginBottom:14}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:6,display:'flex',alignItems:'center',gap:5}}><span style={{background:'#ede9fe',color:'#5b21b6',borderRadius:5,padding:'2px 7px',fontSize:10}}>Stage 1</span>Document Verification</h4>
+      {a.scr?.doc?.checks?.map((ck,i)=><div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',background:'#f8fafc',borderRadius:7,marginBottom:3,border:`1px solid ${ck.st==='verified'?'#86efac':ck.st==='pending'?'#fde68a':'#fca5a5'}`}}><span style={{fontSize:12}}>{ck.st==='verified'?'✅':ck.st==='pending'?'⏳':'❌'}</span><div style={{flex:1}}><div style={{fontSize:11,fontWeight:600}}>{ck.doc}</div><div style={{fontSize:10,color:'#64748b'}}>{ck.note}</div></div><B s={ck.st}/></div>)}
+      {a.scr?.doc?.comment&&<div style={{fontSize:11,color:'#475569',marginTop:4,fontStyle:'italic'}}>💬 {a.scr.doc.comment}</div>}
+    </div>
+    {/* Stage 2 */}
+    {a.scr?.url?.dims?.length>0&&<div style={{marginBottom:14}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:6,display:'flex',alignItems:'center',gap:5}}><span style={{background:'#ede9fe',color:'#5b21b6',borderRadius:5,padding:'2px 7px',fontSize:10}}>Stage 2</span>Universal Readiness Level</h4><div style={{background:'#f8fafc',borderRadius:8,padding:10}}>
+      {a.scr.url.dims.map(d=><div key={d.n} style={{marginBottom:6}}><div style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:2}}><span style={{fontWeight:500,color:'#374151'}}>{d.n}</span><span style={{fontWeight:700}}>{d.s}/100</span></div><PB v={d.s} mx={100} cl={d.s>=70?'#10b981':d.s>=50?'#f59e0b':'#ef4444'}/><div style={{fontSize:9,color:'#94a3b8',marginTop:1}}>{d.e}</div></div>)}
+      <div style={{borderTop:'1px solid #e2e8f0',paddingTop:6,marginTop:4,display:'flex',justifyContent:'space-between'}}><span style={{fontWeight:700,fontSize:12}}>Overall</span><span style={{fontWeight:800,fontSize:15,color:a.scr.url.score>=60?'#059669':'#dc2626'}}>{a.scr.url.score}/100</span></div>
+    </div></div>}
+    {/* Stage 3 */}
+    {a.scr?.kpi?.results?.length>0&&<div style={{marginBottom:14}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:6,display:'flex',alignItems:'center',gap:5}}><span style={{background:'#ede9fe',color:'#5b21b6',borderRadius:5,padding:'2px 7px',fontSize:10}}>Stage 3</span>KPI Assessment</h4>
+      {a.scr.kpi.results.map(r=>{const k=ch?.kpis?.find(x=>x.id===r.kid);return <div key={r.kid} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',background:'#f8fafc',borderRadius:7,marginBottom:3}}><span style={{fontSize:12}}>{r.r==='pass'?'✅':r.r==='pending'?'⏳':'❌'}</span><div style={{flex:1}}><div style={{fontSize:11,fontWeight:600}}>{k?.name||r.kid}</div><div style={{fontSize:10,color:'#64748b'}}>Target: {k?.target}</div></div>{r.s>0&&<span style={{fontSize:11,fontWeight:700}}>{r.s}/100</span>}<B s={r.r==='pass'?'passed':r.r==='fail'?'failed':'pending'}/></div>})}
+    </div>}
+    {/* Eligibility */}
+    {a.elig&&<div style={{background:a.elig.status==='eligible'?'#f0fdf4':'#fef2f2',border:`1px solid ${a.elig.status==='eligible'?'#86efac':'#fca5a5'}`,borderRadius:10,padding:12}}><div style={{fontWeight:700,fontSize:13,color:a.elig.status==='eligible'?'#059669':'#dc2626',marginBottom:3}}>{a.elig.status==='eligible'?'✅ Eligible':'❌ Not Eligible'}</div><div style={{fontSize:11,color:'#475569'}}>{a.elig.reason}</div><div style={{fontSize:10,color:'#94a3b8',marginTop:3}}>Decision: {fd(a.elig.date)}</div></div>}
+  </div>;
+}
+
+// ============ STARTUP SCREENS ============
+function SDash(){
+  const {apps,pils,pays}=useApp();
+  const myApps=apps.filter(a=>a.stId==='ST1');const myPils=pils.filter(p=>p.stId==='ST1');
+  const rcvd=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amt,0);
+  return <div className="fade-in">
+    <div style={{marginBottom:16}}><h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px'}}>Startup Dashboard</h1><p style={{fontSize:12,color:'#64748b',marginTop:2}}>HealthAI Innovations – Track your progress</p></div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:10,marginBottom:16}} className="sg">
+      <SC2 icon="📁" label="Applications" value={myApps.length} cl="#2563eb"/>
+      <SC2 icon="🔬" label="Active Pilots" value={myPils.filter(p=>p.status==='active').length} cl="#0d9488"/>
+      <SC2 icon="💰" label="Received" value={inrL(rcvd)} cl="#22c55e"/>
+      <SC2 icon="🔎" label="In Screening" value={myApps.filter(a=>a.status.startsWith('screening')).length} cl="#8b5cf6"/>
+    </div>
+    {/* Pilot cards */}
+    {myPils.filter(p=>p.status==='active').map(p=>{const ch=initChallenges.find(c=>c.id===p.chId);const cm=p.milestones.filter(m=>m.status==='completed').length;
+      return <div key={p.id} className="card" style={{padding:14,marginBottom:14,borderLeft:'4px solid #14b8a6'}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}><div><B s="active"/><h3 style={{fontSize:14,fontWeight:700,marginTop:4}}>{ch?.title}</h3><div style={{fontSize:11,color:'#64748b',marginTop:3}}>📍 {ch?.city} · {ch?.dept}</div></div><div style={{textAlign:'right'}}><div style={{fontSize:18,fontWeight:800,color:'#0d9488'}}>{cm}/{p.milestones.length}</div><div style={{fontSize:10,color:'#94a3b8'}}>Milestones</div></div></div>
+        <div style={{marginTop:10}}><PB v={cm} mx={p.milestones.length}/><div style={{display:'flex',gap:6,marginTop:6,flexWrap:'wrap'}}>{p.milestones.map(m=><div key={m.id} style={{fontSize:9,padding:'3px 7px',borderRadius:5,background:m.status==='completed'?'#dcfce7':m.status==='in-progress'?'#dbeafe':'#f1f5f9',color:m.status==='completed'?'#166534':m.status==='in-progress'?'#1e40af':'#475569',fontWeight:600}}>{m.status==='completed'?'✓':m.status==='in-progress'?'🔄':'⏳'} {m.name.split(' ').slice(0,2).join(' ')}</div>)}</div></div>
+      </div>})}
+    {/* Applications list */}
+    <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>My Applications</h3>
+      {myApps.map(a=>{const ch=initChallenges.find(c=>c.id===a.chId);const ss=a.scr?.doc?.status==='verified'?(a.scr?.url?.status==='passed'?(a.scr?.kpi?.status==='passed'?3:2):1):0;
+        return <div key={a.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',background:'#f8fafc',borderRadius:8,marginBottom:5,flexWrap:'wrap'}}>
+          <div style={{flex:1,minWidth:120}}><div style={{fontSize:12,fontWeight:600}}>{ch?.title}</div><div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>Applied {fd(a.applied)}</div></div>
+          <B s={a.status}/>
+          {a.status.startsWith('screening')&&<div style={{display:'flex',gap:3}}>{['D','U','K'].map((s,i)=><div key={s} style={{width:20,height:20,borderRadius:'50%',background:i<ss?'#10b981':i===ss?'#2563eb':'#e2e8f0',color:i<=ss?'#fff':'#94a3b8',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,fontWeight:700}}>{i<ss?'✓':i+1}</div>)}</div>}
+        </div>})}
+    </div>
+  </div>;
+}
+
+function Browse(){
+  const {chs,addApp}=useApp();const [q,setQ]=useState('');const [sec,setSec]=useState('All');const [sel,setSel]=useState(null);const [showApp,setShowApp]=useState(false);
+  const pub=chs.filter(c=>c.status==='published');
+  const flt=pub.filter(c=>(sec==='All'||c.sector===sec)&&(!q||c.title.toLowerCase().includes(q.toLowerCase())));
+  return <div className="fade-in">
+    <div style={{marginBottom:16}}><h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px'}}>Browse Challenges</h1><p style={{fontSize:12,color:'#64748b',marginTop:2}}>Find government challenges for your innovative solutions</p></div>
+    <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+      <div style={{position:'relative',flex:1,minWidth:160}}><span style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'#94a3b8'}}>🔍</span><input className="input" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search..." style={{paddingLeft:28,fontSize:12}}/></div>
+      <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{['All',...Object.keys(SC)].map(s=><button key={s} className={`btn btn-sm ${sec===s?'btn-p':'btn-o'}`} style={{padding:'4px 10px',fontSize:10}} onClick={()=>setSec(s)}>{s}</button>)}</div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:12}} className="rg">
+      {flt.map(c=><div key={c.id} className="card" style={{padding:14}}>
+        <div style={{display:'flex',gap:5,marginBottom:6,flexWrap:'wrap'}}><span style={{fontSize:9,fontWeight:600,background:(SC[c.sector]||'#94a3b8')+'20',color:SC[c.sector],padding:'2px 6px',borderRadius:4}}>{SE[c.sector]||''} {c.sector}</span><B s={c.status}/></div>
+        <h3 style={{fontSize:13,fontWeight:700,lineHeight:1.3,marginBottom:5}}>{c.title}</h3>
+        <p style={{fontSize:11,color:'#64748b',lineHeight:1.5,marginBottom:8,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{c.problem}</p>
+        <div style={{display:'flex',gap:6,fontSize:10,color:'#94a3b8',flexWrap:'wrap',marginBottom:8}}><span>🏛️ {c.dept}</span><span>💰 {inrL(c.budget)}</span><span>📍 {c.city}</span></div>
+        <div style={{display:'flex',gap:5}}><button className="btn btn-o btn-sm" onClick={()=>{setSel(c);setShowApp(false)}} style={{flex:1}}>Details</button><button className="btn btn-b btn-sm" onClick={()=>{setSel(c);setShowApp(true)}} style={{flex:1}}>🚀 Apply</button></div>
+      </div>)}
+    </div>
+    {flt.length===0&&<Empty icon="🔍" title="No challenges found"/>}
+    {/* Detail Modal */}
+    <Mod open={!!sel&&!showApp} close={()=>setSel(null)} title={sel?.title||''} wide>{sel&&<div>
+      <div style={{display:'flex',gap:5,marginBottom:10,flexWrap:'wrap'}}><span style={{fontSize:9,fontWeight:600,background:(SC[sel.sector]||'#94a3b8')+'20',color:SC[sel.sector],padding:'2px 6px',borderRadius:4}}>{sel.sector}</span><B s={sel.status}/></div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))',gap:8,marginBottom:12}} className="sg">{[['💰 Budget',inr(sel.budget)],['📍 Location',sel.city],['⏳ Deadline',fd(sel.deadline)],['🏛️ Dept',sel.dept],['📐 Duration',sel.pilotDuration||'TBD'],['👥 Applied',sel.applicants||0]].map(([l,v])=><div key={l} style={{background:'#f8fafc',borderRadius:7,padding:8}}><div style={{fontSize:9,color:'#94a3b8'}}>{l}</div><div style={{fontSize:11,fontWeight:700,marginTop:2}}>{v}</div></div>)}</div>
+      <div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:3}}>Problem Statement</h4><p style={{fontSize:12,color:'#475569',lineHeight:1.6}}>{sel.problem}</p></div>
+      {sel.outcomes&&<div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:3}}>Expected Outcomes</h4><p style={{fontSize:12,color:'#475569',lineHeight:1.6}}>{sel.outcomes}</p></div>}
+      {sel.kpis?.length>0&&<div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:6}}>KPIs</h4>{sel.kpis.map(k=><div key={k.id} style={{background:'#f0fdfa',border:'1px solid #ccfbf1',borderRadius:6,padding:8,marginBottom:4}}><div style={{display:'flex',justifyContent:'space-between'}}><span style={{fontSize:11,fontWeight:600,color:'#0f766e'}}>{k.name}</span><span style={{fontSize:10,color:'#64748b'}}>Wt: {k.weight}%</span></div><div style={{fontSize:10,color:'#475569',marginTop:2}}>Target: <strong>{k.target}</strong></div></div>)}</div>}
+      <button className="btn btn-b" style={{width:'100%'}} onClick={()=>setShowApp(true)}>🚀 Apply to This Challenge</button>
+    </div>}</Mod>
+    {/* Apply Modal */}
+    <Mod open={showApp&&!!sel} close={()=>{setShowApp(false);setSel(null)}} title={`Apply: ${sel?.title||''}`} wide><AppForm ch={sel} onDone={()=>{setShowApp(false);setSel(null)}}/></Mod>
+  </div>;
+}
+
+function AppForm({ch,onDone}){
+  const {addApp}=useApp();const [f,setF]=useState({proposal:'',approach:''});const [step,setStep]=useState(0);const [done,setDone]=useState(false);
+  const submit=()=>{addApp({id:gid('APP'),chId:ch.id,stId:'ST1',status:'screening-doc',applied:new Date().toISOString().split('T')[0],proposal:f.proposal,approach:f.approach,scr:{doc:{status:'pending',checks:[]},url:{status:'pending',dims:[]},kpi:{status:'pending',results:[]}},elig:null,contract:null});setDone(true);setTimeout(onDone,1800)};
+  if(done)return <div style={{textAlign:'center',padding:'36px 0'}}><div style={{fontSize:44,marginBottom:10}}>🎉</div><h3 style={{fontSize:16,fontWeight:800}}>Application Submitted!</h3><p style={{fontSize:12,color:'#64748b',marginTop:4}}>MSInS will begin verification within 2 business days.</p></div>;
+  return <div>
+    <Stepper steps={['Solution','Approach','Submit']} cur={step}/>
+    {step===0&&<div><div style={{background:'#f8fafc',borderRadius:8,padding:10,marginBottom:10,fontSize:12}}><strong>Applying to:</strong> {ch?.title}<br/><strong>Budget:</strong> {inr(ch?.budget||0)} · <strong>Deadline:</strong> {fd(ch?.deadline)}</div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Solution Proposal *</label><textarea className="input" rows={5} placeholder="Describe your solution..." value={f.proposal} onChange={e=>setF({...f,proposal:e.target.value})} style={{resize:'vertical',marginBottom:10}}/><button className="btn btn-b" style={{width:'100%'}} disabled={!f.proposal} onClick={()=>setStep(1)}>Next →</button></div>}
+    {step===1&&<div><label style={{display:'block',fontSize:11,fontWeight:600,color:'#374151',marginBottom:3}}>Implementation Approach *</label><textarea className="input" rows={5} placeholder="Describe your plan..." value={f.approach} onChange={e=>setF({...f,approach:e.target.value})} style={{resize:'vertical',marginBottom:10}}/><div style={{display:'flex',gap:8}}><button className="btn btn-o" onClick={()=>setStep(0)}>← Back</button><button className="btn btn-b" style={{flex:1}} disabled={!f.approach} onClick={()=>setStep(2)}>Next →</button></div></div>}
+    {step===2&&<div><div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:10,padding:12,marginBottom:12}}><h4 style={{fontSize:12,fontWeight:700,color:'#1e40af',marginBottom:6}}>Summary</h4><div style={{fontSize:11,color:'#1e40af'}}>Challenge: <strong>{ch?.title}</strong></div><div style={{fontSize:11,color:'#1e40af',marginTop:3}}>Startup: <strong>HealthAI Innovations</strong></div><div style={{fontSize:11,color:'#1e40af',marginTop:3}}>Profile Docs: <strong>4 files</strong></div></div><div style={{display:'flex',gap:8}}><button className="btn btn-o" onClick={()=>setStep(1)}>← Back</button><button className="btn btn-b" style={{flex:1}} onClick={submit}>✅ Submit Application</button></div></div>}
+  </div>;
+}
+
+// ============ SHARED SCREENS ============
+function PilsP(){
+  const {pils}=useApp();
+  if(!pils.length)return <Empty icon="🔬" title="No pilots yet" desc="Pilots appear after contracts are signed."/>;
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Pilot Management</h1>
+    {pils.map(p=>{const ch=initChallenges.find(c=>c.id===p.chId);const st=initStartups.find(s=>s.id===p.stId);
+      return <div key={p.id} className="card" style={{padding:14,marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:10,marginBottom:10,flexWrap:'wrap'}}><div><B s={p.status}/><h3 style={{fontSize:15,fontWeight:700,marginTop:5}}>{ch?.title}</h3><div style={{fontSize:11,color:'#64748b',marginTop:2}}>🚀 {st?.name} · 🏛️ {ch?.dept} · 📍 {ch?.city}</div><div style={{fontSize:10,color:'#94a3b8',marginTop:2}}>Start: {fd(p.start)} · End: {fd(p.end)} · Budget: {inr(initContracts[0]?.payment?.total||0)}</div></div></div>
+        <h4 style={{fontSize:12,fontWeight:700,marginBottom:6}}>Milestones</h4>
+        {p.milestones.map((m,i)=><div key={m.id} style={{border:'1px solid #e2e8f0',borderRadius:9,padding:10,marginBottom:6,background:m.status==='completed'?'#f0fdf4':m.status==='in-progress'?'#eff6ff':'#fff'}}>
+          <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:6,flexWrap:'wrap'}}>
+            <div style={{display:'flex',gap:8,alignItems:'flex-start'}}><div style={{width:24,height:24,borderRadius:6,background:m.status==='completed'?'#dcfce7':m.status==='in-progress'?'#dbeafe':'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:11,color:m.status==='completed'?'#059669':'#374151',flexShrink:0}}>{i+1}</div>
+              <div><div style={{fontSize:12,fontWeight:600}}>{m.name}</div><div style={{fontSize:10,color:'#64748b',marginTop:1}}>Due: {fd(m.deadline)} · {inr(m.amt)}</div><div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{m.deliverables||initContracts[0]?.payment?.milestones?.[i]?.deliverables||''}</div></div></div>
+            <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}><B s={m.status}/>{m.payStatus!=='not-due'&&<B s={m.payStatus} l={m.payStatus==='paid'?'Paid '+fd(m.payDate):SL[m.payStatus]||m.payStatus}/>}</div>
+          </div>
+          {m.subs?.length>0&&<div style={{marginTop:6,background:'#f8fafc',borderRadius:6,padding:6}}><div style={{fontSize:10,fontWeight:600,color:'#64748b',marginBottom:3}}>📤 Evidence ({fd(m.subs[0].date)})</div><div style={{fontSize:10,color:'#475569'}}>{m.subs[0].notes?.substring(0,100)}...</div>{m.subs[0].geo&&<div style={{fontSize:9,color:'#94a3b8',marginTop:2}}>📍 {m.subs[0].geo.loc}</div>}<div style={{display:'flex',gap:3,marginTop:3,flexWrap:'wrap'}}>{m.subs[0].files?.map(f=><span key={f} style={{fontSize:9,background:'#dbeafe',color:'#1e40af',padding:'1px 5px',borderRadius:3}}>📎 {f}</span>)}</div></div>}
+          {m.veri?.length>0&&<div style={{marginTop:4,background:'#f0fdf4',borderRadius:6,padding:6,border:'1px solid #bbf7d0'}}><div style={{fontSize:10,fontWeight:600,color:'#059669'}}>✅ Verified ({fd(m.veri[0].date)})</div><div style={{fontSize:10,color:'#065f46',marginTop:1}}>{m.veri[0].comment}</div></div>}
+        </div>)}
+        {p.risks?.length>0&&<div style={{marginTop:8}}><h4 style={{fontSize:11,fontWeight:700,marginBottom:4}}>⚠️ Risks & Issues</h4>{p.risks.map((r,i)=><div key={i} style={{fontSize:10,color:'#64748b',padding:'2px 0'}}>• {r}</div>)}{p.issues?.map((is,i)=><div key={i} style={{fontSize:10,color:'#475569',padding:'3px 0',display:'flex',gap:6,alignItems:'center'}}><B s={is.status}/>{is.desc} <span style={{fontSize:9,color:'#94a3b8'}}>→ {is.fix}</span></div>)}</div>}
+      </div>})}
+  </div>;
+}
+
+function PaysP(){
+  const {pays}=useApp();
+  const paid=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amt,0);
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Payment Tracking</h1>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:10,marginBottom:14}} className="sg">
+      <SC2 icon="💰" label="Total Paid" value={inrL(paid)} cl="#22c55e"/>
+      <SC2 icon="📋" label="Transactions" value={pays.length} cl="#3b82f6"/>
+    </div>
+    <div style={{background:'#fef9c3',border:'1px solid #fde047',borderRadius:10,padding:'8px 12px',marginBottom:12,fontSize:11,color:'#713f12',fontWeight:500}}>⚠️ Payments via PFMS after verification. <em>Simulated in prototype.</em></div>
+    <div className="card" style={{padding:0,overflow:'hidden'}}><div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}><thead><tr style={{borderBottom:'1px solid #e2e8f0',background:'#f8fafc'}}><th style={{textAlign:'left',padding:'8px 12px',color:'#64748b',fontWeight:600,fontSize:10}}>ID</th><th className="hm" style={{textAlign:'left',padding:'8px 12px',color:'#64748b',fontWeight:600,fontSize:10}}>Milestone</th><th style={{textAlign:'right',padding:'8px 12px',color:'#64748b',fontWeight:600,fontSize:10}}>Amount</th><th style={{textAlign:'left',padding:'8px 12px',color:'#64748b',fontWeight:600,fontSize:10}}>Status</th><th className="hm" style={{textAlign:'left',padding:'8px 12px',color:'#64748b',fontWeight:600,fontSize:10}}>Date</th><th className="hm" style={{textAlign:'left',padding:'8px 12px',color:'#64748b',fontWeight:600,fontSize:10}}>Ref</th></tr></thead><tbody>
+      {pays.map(p=>{const pl=initPilots.find(x=>x.id===p.pilId);const ms=pl?.milestones.find(m=>m.id===p.msId);return <tr key={p.id} style={{borderBottom:'1px solid #f1f5f9'}}><td style={{padding:'10px 12px',fontWeight:600}}>{p.id}</td><td className="hm" style={{padding:'10px 12px',fontSize:11,color:'#475569'}}>{ms?.name||p.msId}</td><td style={{padding:'10px 12px',fontWeight:700,color:'#059669',textAlign:'right'}}>{inr(p.amt)}</td><td style={{padding:'10px 12px'}}><B s={p.status}/></td><td className="hm" style={{padding:'10px 12px',fontSize:11,color:'#64748b'}}>{fd(p.processed)}</td><td className="hm" style={{padding:'10px 12px',fontSize:10,fontFamily:'monospace',color:'#94a3b8'}}>{p.ref}</td></tr>})}
+    </tbody></table></div></div>
+  </div>;
+}
+
+function ConP(){
+  const {cons}=useApp();
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Contract Management</h1>
+    {cons.map(c=>{const ch=initChallenges.find(x=>x.id===c.chId);const st=initStartups.find(x=>x.id===c.stId);
+      return <div key={c.id} className="card" style={{padding:14,marginBottom:12}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+          <div><B s={c.status}/><h3 style={{fontSize:14,fontWeight:700,marginTop:4}}>{ch?.title}</h3><div style={{fontSize:11,color:'#64748b',marginTop:2}}>🚀 {st?.name} · Contract: {c.id}</div></div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}} className="rg">
+          <div style={{background:'#f0fdfa',borderRadius:8,padding:10,border:'1px solid #ccfbf1'}}>
+            <h4 style={{fontSize:12,fontWeight:700,color:'#0f766e',marginBottom:4}}>📜 IP Agreement</h4>
+            <div style={{fontSize:10,color:'#475569',lineHeight:1.6,marginBottom:6}}>{c.ip.terms?.substring(0,150)}...</div>
+            <div style={{fontSize:10,color:'#94a3b8'}}>Signed: Startup {fd(c.ip.signedStartup)} · Govt {fd(c.ip.signedGovt)} · MSInS {fd(c.ip.signedMSInS)}</div>
+            <B s={c.ip.status}/>
+          </div>
+          <div style={{background:'#eff6ff',borderRadius:8,padding:10,border:'1px solid #bfdbfe'}}>
+            <h4 style={{fontSize:12,fontWeight:700,color:'#1e40af',marginBottom:4}}>💰 Payment Agreement</h4>
+            <div style={{fontSize:11,fontWeight:700,color:'#0f172a',marginBottom:4}}>Total: {inr(c.payment.total)}</div>
+            {c.payment.milestones?.map(m=><div key={m.id} style={{fontSize:10,color:'#475569',padding:'2px 0'}}>• {m.name}: {inr(m.amt)} (Due: {fd(m.deadline)})</div>)}
+            <div style={{marginTop:4}}><B s={c.payment.status}/></div>
+          </div>
+        </div>
+      </div>})}
+    {cons.length===0&&<Empty icon="📜" title="No contracts yet" desc="Contracts are generated after eligibility screening."/>}
+  </div>;
+}
+
+function ImpP(){
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Impact & Scale-Up</h1>
+    {initImpact.map(imp=>{const ch=initChallenges.find(c=>c.id===imp.chId);const st=initStartups.find(s=>s.id===imp.stId);const su=initScaleUp.find(s=>s.impactId===imp.id);
+      return <div key={imp.id} className="card" style={{padding:14,marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,marginBottom:10,flexWrap:'wrap'}}><div><B s={imp.status} l="Impact Assessment"/><h3 style={{fontSize:14,fontWeight:700,marginTop:4}}>{ch?.title}</h3><div style={{fontSize:11,color:'#64748b',marginTop:2}}>🚀 {st?.name} · Pilot: PIL1</div></div></div>
+        <h4 style={{fontSize:12,fontWeight:700,marginBottom:6}}>KPI Results</h4>
+        {imp.kpiResults.map(k=><div key={k.kid} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',background:'#f8fafc',borderRadius:7,marginBottom:4}}>
+          <div style={{flex:1}}><div style={{fontSize:11,fontWeight:600}}>{k.name}</div><div style={{fontSize:10,color:'#64748b',marginTop:1}}>Target: {k.target} · Achieved: <strong>{k.achieved}</strong></div></div>
+          <PB v={k.pct} mx={100} cl={k.pct>=100?'#10b981':'#3b82f6'} h={5}/>
+          <B s={k.status}/>
+        </div>)}
+        {imp.deptFeedback&&<div style={{marginTop:8,background:'#f0fdf4',borderRadius:8,padding:10,border:'1px solid #bbf7d0'}}><h4 style={{fontSize:11,fontWeight:700,color:'#059669',marginBottom:3}}>🏛️ Department Feedback</h4><p style={{fontSize:11,color:'#065f46',lineHeight:1.5}}>{imp.deptFeedback}</p></div>}
+        {su&&<div style={{marginTop:8,background:'#f0fdfa',borderRadius:8,padding:10,border:'1px solid #99f6e4'}}>
+          <h4 style={{fontSize:11,fontWeight:700,color:'#0f766e',marginBottom:3}}>📈 Scale-Up Recommendation</h4>
+          <p style={{fontSize:11,color:'#134e4a',lineHeight:1.5,marginBottom:4}}>{su.recommendation}</p>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',fontSize:10}}>
+            <B s={su.status}/>
+            <span style={{color:'#64748b'}}>Budget: {inrL(su.estimatedBudget)}</span>
+            <span style={{color:'#64748b'}}>Timeline: {su.timeline}</span>
+          </div>
+        </div>}
+      </div>})}
+  </div>;
+}
+
+function ProfP(){
+  const st=initStartups[0];
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Startup Profile</h1>
+    <div className="card" style={{padding:14,marginBottom:14}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}><Av name={st.name} sz={48} cl="#2563eb"/><div><h2 style={{fontSize:16,fontWeight:800}}>{st.name}</h2><div style={{fontSize:12,color:'#64748b'}}>{st.sector} · 📍 {st.city} · Est. {st.founded}</div></div></div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:12}} className="rg">
+        {[['GSTIN',st.gstin],['DPIIT',st.dpiit],['Founders',st.founders],['Employees',st.employees],['CIN',st.cin||'—'],['Website',st.website||'—']].map(([l,v])=><div key={l} style={{background:'#f8fafc',borderRadius:7,padding:8}}><div style={{fontSize:10,color:'#94a3b8'}}>{l}</div><div style={{fontSize:11,fontWeight:600,marginTop:2,fontFamily:l==='GSTIN'||l==='CIN'?'monospace':'inherit'}}>{v}</div></div>)}
+      </div>
+      <div style={{marginBottom:10}}><h4 style={{fontSize:12,fontWeight:700,marginBottom:3}}>About</h4><p style={{fontSize:12,color:'#475569',lineHeight:1.6}}>{st.about}</p></div>
+      <div><h4 style={{fontSize:12,fontWeight:700,marginBottom:4}}>Uploaded Documents</h4>{st.docs.map(d=><div key={d} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 0',fontSize:11,color:'#475569'}}>📎 {d} <span style={{fontSize:9,color:'#10b981',fontWeight:600}}>✓ Uploaded</span></div>)}</div>
+      <div style={{marginTop:10,display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:11,fontWeight:600}}>Profile Completion:</span><PB v={st.profileComplete} cl="#14b8a6" h={6}/><span style={{fontSize:11,fontWeight:700,color:'#0d9488'}}>{st.profileComplete}%</span></div>
+    </div>
+  </div>;
+}
+
+function PubP(){
+  const {chs}=useApp();const pub=chs.filter(c=>c.status==='published');
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Published Challenges</h1>
+    {pub.map(c=><div key={c.id} className="card" style={{padding:14,marginBottom:10}}>
+      <div style={{display:'flex',gap:5,marginBottom:5}}><B s={c.status}/><span style={{fontSize:9,fontWeight:600,background:(SC[c.sector]||'#94a3b8')+'20',color:SC[c.sector],padding:'2px 6px',borderRadius:4}}>{c.sector}</span></div>
+      <h3 style={{fontSize:14,fontWeight:700,marginBottom:3}}>{c.title}</h3>
+      <div style={{fontSize:11,color:'#64748b',lineHeight:1.5,marginBottom:6}}>{c.problem?.substring(0,120)}...</div>
+      <div style={{display:'flex',gap:10,fontSize:10,color:'#94a3b8',flexWrap:'wrap'}}><span>🏛️ {c.dept}</span><span>💰 {inrL(c.budget)}</span><span>📍 {c.city}</span><span>⏳ {fd(c.deadline)}</span><span>👥 {c.applicants} applied</span></div>
+    </div>)}
+  </div>;
+}
+
+function AnalP(){
+  const {chs,apps,pils,pays}=useApp();
+  const paid=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+p.amt,0);
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Analytics & Reports</h1>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:10,marginBottom:16}} className="sg">
+      <SC2 icon="📋" label="Challenges" value={chs.length} cl="#0d9488"/>
+      <SC2 icon="📢" label="Published" value={chs.filter(c=>c.status==='published').length} cl="#2563eb"/>
+      <SC2 icon="📁" label="Applications" value={apps.length} cl="#8b5cf6"/>
+      <SC2 icon="✅" label="Eligible" value={apps.filter(a=>a.elig?.status==='eligible').length} cl="#22c55e"/>
+      <SC2 icon="🔬" label="Pilots" value={pils.length} cl="#06b6d4"/>
+      <SC2 icon="💰" label="Paid" value={inrL(paid)} cl="#f59e0b"/>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}} className="rg">
+      <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Screening Conversion</h3>
+        <BC data={[{l:'Total',v:apps.length,c:'#3b82f6'},{l:'Doc ✓',v:apps.filter(a=>['verified'].includes(a.scr?.doc?.status)).length,c:'#8b5cf6'},{l:'URL ✓',v:apps.filter(a=>['passed'].includes(a.scr?.url?.status)).length,c:'#f59e0b'},{l:'KPI ✓',v:apps.filter(a=>['passed'].includes(a.scr?.kpi?.status)).length,c:'#06b6d4'},{l:'Eligible',v:apps.filter(a=>a.elig?.status==='eligible').length,c:'#10b981'}]} h={140}/></div>
+      <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Challenges by Sector</h3>
+        <BC data={Object.keys(SC).map(s=>({l:s.slice(0,5),v:chs.filter(c=>c.sector===s).length,c:SC[s]}))} h={140}/></div>
+    </div>
+    <div className="card" style={{padding:14}}><h3 style={{fontSize:13,fontWeight:700,marginBottom:10}}>Milestone Completion</h3>
+      {pils[0]?.milestones?.map((m,i)=><div key={m.id} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0'}}><span style={{fontSize:11,fontWeight:600,flex:1}}>{m.name}</span><PB v={m.status==='completed'?100:m.status==='in-progress'?60:0} cl={m.status==='completed'?'#10b981':'#3b82f6'} h={6}/><B s={m.status}/></div>)}
+    </div>
+  </div>;
+}
+
+function UsersP(){
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>User Management</h1>
+    <div className="card" style={{padding:14}}>
+      <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}><thead><tr style={{borderBottom:'1px solid #e2e8f0'}}><th style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>User</th><th style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Email</th><th style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Role</th><th className="hm" style={{textAlign:'left',padding:'7px 8px',color:'#64748b',fontWeight:600,fontSize:10}}>Organization</th></tr></thead><tbody>
+        {USERS.map(u=><tr key={u.id} style={{borderBottom:'1px solid #f1f5f9'}}><td style={{padding:'8px',display:'flex',alignItems:'center',gap:6}}><Av name={u.name} sz={24} cl={u.role==='govt'?'#0d9488':u.role==='admin'?'#7e22ce':'#2563eb'}/><span style={{fontWeight:600}}>{u.name}</span></td><td style={{padding:'8px',fontSize:11,color:'#64748b'}}>{u.email}</td><td style={{padding:'8px'}}><B s={u.role==='admin'?'passed':u.role==='govt'?'verified':'open'} l={u.role==='admin'?'MSInS':u.role==='govt'?'Government':'Startup'}/></td><td className="hm" style={{padding:'8px',fontSize:11,color:'#64748b'}}>{u.dept||u.company||'—'}</td></tr>)}
+      </tbody></table></div>
+    </div>
+  </div>;
+}
+
+function MyChs(){
+  const {chs}=useApp();
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>My Challenges</h1>
+    {chs.map(c=><div key={c.id} className="card" style={{padding:14,marginBottom:10}}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
+        <div style={{flex:1,minWidth:180}}><div style={{display:'flex',gap:5,marginBottom:4}}><B s={c.status}/><span style={{fontSize:9,fontWeight:600,background:(SC[c.sector]||'#94a3b8')+'20',color:SC[c.sector],padding:'2px 6px',borderRadius:4}}>{c.sector}</span></div><h3 style={{fontSize:14,fontWeight:700,marginBottom:2}}>{c.title}</h3><div style={{fontSize:11,color:'#64748b',lineHeight:1.5,marginBottom:4}}>{c.problem?.substring(0,100)}...</div><div style={{display:'flex',gap:8,fontSize:10,color:'#94a3b8',flexWrap:'wrap'}}><span>💰 {inrL(c.budget)}</span><span>📍 {c.city}</span><span>👥 {c.applicants||0} apps</span><span>📐 {c.kpis?.length||0} KPIs</span>{c.deadline&&<span>⏳ {fd(c.deadline)}</span>}</div>
+          {c.reviews?.length>0&&<div style={{marginTop:6,background:'#f8fafc',borderRadius:6,padding:6,fontSize:10,color:'#475569'}}><strong>Last review:</strong> {c.reviews[c.reviews.length-1].comment?.substring(0,80)}... ({fd(c.reviews[c.reviews.length-1].date)})</div>}
+        </div>
+      </div>
+    </div>)}
+  </div>;
+}
+
+function GApps(){
+  const {apps}=useApp();
+  return <div className="fade-in">
+    <h1 style={{fontSize:20,fontWeight:800,letterSpacing:'-.5px',marginBottom:16}}>Applications Received</h1>
+    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+      {apps.map(a=>{const ch=initChallenges.find(c=>c.id===a.chId);const st=initStartups.find(s=>s.id===a.stId);
+        return <div key={a.id} className="card" style={{padding:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <Av name={st?.name||'?'} sz={30} cl="#2563eb"/>
+            <div style={{flex:1,minWidth:120}}><div style={{fontSize:12,fontWeight:600}}>{st?.name}</div><div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{ch?.title} · Applied {fd(a.applied)}</div></div>
+            <B s={a.status}/>
+            {a.scr?.url?.score>0&&<span style={{fontSize:11,fontWeight:700}}>URL: {a.scr.url.score}/100</span>}
+          </div>
+        </div>})}
+    </div>
+  </div>;
+}
+
+// ============ APP ============
+function App(){
+  const [authScr,setAuthScr]=useState('landing');
+  const [user,setUser]=useState(null);
+  const [page,setPage]=useState('dashboard');
+  const [sideOpen,setSideOpen]=useState(false);
+  const [chs,setChs]=useState(initChallenges);
+  const [apps,setApps]=useState(initApps);
+  const addCh=ch=>setChs(p=>[...p,ch]);
+  const updCh=ch=>setChs(p=>p.map(c=>c.id===ch.id?ch:c));
+  const addApp=ap=>setApps(p=>[...p,ap]);
+
+  const handleLogin=u=>{setUser(u);setAuthScr('app');setPage('dashboard')};
+  const handleLogout=()=>{setUser(null);setAuthScr('landing')};
+
+  const ctx={user,page,setPage,sideOpen,setSideOpen,notifs:initNotifs,chs,apps,sts:initStartups,cons:initContracts,pils:initPilots,pays:initPayments,addCh,updCh,addApp};
+
+  if(authScr==='landing')return <Landing nav={setAuthScr}/>;
+  if(authScr==='login')return <Login onLogin={handleLogin} nav={setAuthScr}/>;
+  if(authScr==='signup')return <Signup nav={setAuthScr}/>;
+  if(!user)return null;
+
+  const render=()=>{
+    if(user.role==='govt'){switch(page){
+      case 'dashboard':return <GDash/>;case 'challenges':return <MyChs/>;case 'create':return <CreateCh/>;case 'apps':return <GApps/>;case 'pilots':return <PilsP/>;case 'payments':return <PaysP/>;case 'impact':return <ImpP/>;}}
+    if(user.role==='admin'){switch(page){
+      case 'dashboard':return <ADash/>;case 'review':return <RevQ/>;case 'published':return <PubP/>;case 'screening':return <ScrP/>;case 'contracts':return <ConP/>;case 'pilots':return <PilsP/>;case 'payments':return <PaysP/>;case 'analytics':return <AnalP/>;case 'audit':return <AuditP/>;case 'users':return <UsersP/>;}}
+    if(user.role==='startup'){switch(page){
+      case 'dashboard':return <SDash/>;case 'profile':return <ProfP/>;case 'browse':return <Browse/>;case 'apps':return <ScrP/>;case 'contracts':return <ConP/>;case 'pilots':return <PilsP/>;case 'payments':return <PaysP/>;case 'impact':return <ImpP/>;}}
+    return <Empty icon="❓" title="Page not found"/>;
+  };
+
+  return <Ctx.Provider value={ctx}><Layout user={user} logout={handleLogout}>{render()}</Layout></Ctx.Provider>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
